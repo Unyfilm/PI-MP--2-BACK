@@ -13,9 +13,11 @@ import {
   ResetPasswordRequest,
   ChangePasswordRequest 
 } from '../types/user.types';
+import { sendPasswordResetEmail } from '../services/emailService';
 import { ApiResponse, AuthenticatedRequest, HttpStatusCode } from '../types/api.types';
 import { generateToken } from '../utils/auth.utils';
 import { validateEmail, validatePassword } from '../utils/validation.utils';
+import { config } from '../config/environment';
 
 /**
  * Register a new user
@@ -393,6 +395,192 @@ export const logoutUser = async (req: AuthenticatedRequest, res: Response): Prom
       success: false,
       message: 'Error interno del servidor',
       error: 'Error al cerrar sesión',
+      timestamp: new Date().toISOString(),
+    } as ApiResponse);
+  }
+};
+
+/**
+ * Request password reset - Send reset token to user's email
+ * Handles POST /api/auth/forgot-password
+ *
+ * @route POST /api/auth/forgot-password
+ * @access Public
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>}
+ */
+export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email }: ResetPasswordRequest = req.body;
+
+    // Validate input
+    if (!email) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'El email es requerido',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Validate email format
+    if (!validateEmail(email)) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'Por favor ingresa un email válido',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email });
+    
+    // Always return success for security (don't reveal if email exists)
+    // But only process if user actually exists
+    if (user && user.isActive) {
+      // Generate reset token (valid for 1 hour)
+      const resetToken = jwt.sign(
+        { userId: user._id, email: user.email },
+        config.jwtSecret,
+        { expiresIn: '1h' }
+      );
+
+      // Save token to user document
+      user.resetPasswordToken = resetToken;
+      user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      await user.save();
+
+      // Send reset email
+      const resetLink = `${config.clientUrl}/reset-password?token=${resetToken}`;
+      
+      try {
+        const emailSent = await sendPasswordResetEmail(email, resetLink);
+        if (emailSent) {
+          console.log(`✅ Password reset email sent to ${email}`);
+        } else {
+          console.log(`⚠️ Email service failed, falling back to simulation for ${email}: ${resetLink}`);
+        }
+      } catch (emailError) {
+        console.error('Email service error:', emailError);
+        console.log(`[EMAIL FALLBACK] Reset link for ${email}: ${resetLink}`);
+      }
+    }
+
+    // Always return success response for security
+    res.status(HttpStatusCode.OK).json({
+      success: true,
+      message: 'Si el email existe en nuestro sistema, recibirás un enlace para restablecer tu contraseña',
+      timestamp: new Date().toISOString(),
+    } as ApiResponse);
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Error interno del servidor',
+      error: 'Error al procesar la solicitud',
+      timestamp: new Date().toISOString(),
+    } as ApiResponse);
+  }
+};
+
+/**
+ * Reset password using valid token
+ * Handles POST /api/auth/reset-password
+ *
+ * @route POST /api/auth/reset-password
+ * @access Public
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>}
+ */
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token, password, confirmPassword } = req.body;
+
+    // Validate input
+    if (!token || !password || !confirmPassword) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'Token, contraseña y confirmación de contraseña son requeridos',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Validate password strength
+    if (!validatePassword(password)) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Confirm passwords match
+    if (password !== confirmPassword) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'Las contraseñas no coinciden',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Verify token
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, config.jwtSecret);
+    } catch (error) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'Enlace inválido o caducado',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Find user with valid reset token
+    const user = await User.findOne({
+      _id: decoded.userId,
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: new Date() },
+      isActive: true,
+    });
+
+    if (!user) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'Enlace inválido o caducado',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Update password and clear reset fields
+    user.password = password; // Will be hashed by pre-save hook
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.status(HttpStatusCode.OK).json({
+      success: true,
+      message: 'Contraseña restablecida exitosamente',
+      data: {
+        redirectTo: '/login'
+      },
+      timestamp: new Date().toISOString(),
+    } as ApiResponse);
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Error interno del servidor',
+      error: 'Error al restablecer la contraseña',
       timestamp: new Date().toISOString(),
     } as ApiResponse);
   }
