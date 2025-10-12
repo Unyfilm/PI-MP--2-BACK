@@ -17,15 +17,21 @@ import { validateEmail, validatePassword } from '../utils/validation.utils';
 
 /**
  * Register a new user
+ * Handles POST /api/auth/register
+ *
  * @route POST /api/auth/register
  * @access Public
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>}
  */
 export const registerUser = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { username, email, password, firstName, lastName }: RegisterUserRequest = req.body;
+    // Accept confirmPassword from body
+    const { username, email, password, confirmPassword, firstName, lastName } = req.body;
 
     // Validate input
-    if (!username || !email || !password || !firstName || !lastName) {
+    if (!username || !email || !password || !confirmPassword || !firstName || !lastName) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
         message: 'All fields are required',
@@ -38,7 +44,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     if (!validateEmail(email)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
-        message: 'Invalid email format',
+        message: 'Invalid email address',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
@@ -48,7 +54,17 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     if (!validatePassword(password)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
-        message: 'Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character',
+        message: 'Password must be at least 8 characters, include an uppercase letter, a number, and a symbol.',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Confirm password match
+    if (password !== confirmPassword) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'Passwords do not match',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
@@ -62,7 +78,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     if (existingUser) {
       res.status(HttpStatusCode.CONFLICT).json({
         success: false,
-        message: 'User with this email or username already exists',
+        message: 'Email or username already registered',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
@@ -79,12 +95,10 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
 
     await user.save();
 
-    // Generate JWT token
-    const token = generateToken(user._id, user.email, user.role);
-
+    // Registration successful, do not auto-login, just respond
     res.status(HttpStatusCode.CREATED).json({
       success: true,
-      message: 'User registered successfully',
+      message: 'Registration successful',
       data: {
         user: {
           id: user._id,
@@ -94,7 +108,6 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
           lastName: user.lastName,
           role: user.role,
         },
-        token,
       },
       timestamp: new Date().toISOString(),
     } as ApiResponse);
@@ -102,8 +115,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     console.error('Register user error:', error);
     res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Internal server error',
-      error: 'Failed to register user',
+      message: 'An error occurred. Please try again later.',
       timestamp: new Date().toISOString(),
     } as ApiResponse);
   }
