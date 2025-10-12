@@ -28,7 +28,7 @@ router.post('/register', registerUser);
  * @desc    Login user
  * @access  Public
  */
-router.post('/login', validateUserLogin, loginUser);
+router.post('/login', loginUser);
 
 /**
  * @route   POST /api/auth/logout
