@@ -6,6 +6,7 @@ import { Router } from 'express';
 import { 
   registerUser, 
   loginUser, 
+  logoutUser,
   getUserProfile, 
   updateUserProfile, 
   deleteUserAccount 
@@ -28,6 +29,13 @@ router.post('/register', registerUser);
  * @access  Public
  */
 router.post('/login', validateUserLogin, loginUser);
+
+/**
+ * @route   POST /api/auth/logout
+ * @desc    Logout user
+ * @access  Private
+ */
+router.post('/logout', authenticateToken, logoutUser);
 
 /**
  * @route   GET /api/users/profile

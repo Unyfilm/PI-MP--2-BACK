@@ -3,7 +3,9 @@
  */
 
 import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
+import { RevokedToken } from '../models/RevokedToken';
 import { 
   RegisterUserRequest, 
   LoginUserRequest, 
@@ -34,7 +36,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     if (!username || !email || !password || !confirmPassword || !firstName || !lastName) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
-        message: 'All fields are required',
+        message: 'Todos los campos son requeridos',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
@@ -44,7 +46,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     if (typeof email !== 'string' || !validateEmail(email)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
-        message: 'Invalid email address',
+        message: 'Por favor ingresa un email válido',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
@@ -54,7 +56,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     if (typeof password !== 'string' || !validatePassword(password)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
-        message: 'Password must be at least 8 characters, include an uppercase letter, a number, and a symbol.',
+        message: 'La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
@@ -64,7 +66,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     if (password !== confirmPassword) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
-        message: 'Passwords do not match',
+        message: 'Las contraseñas no coinciden',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
@@ -76,9 +78,10 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     });
 
     if (existingUser) {
+      const field = existingUser.email === email ? 'correo electrónico' : 'nombre de usuario';
       res.status(HttpStatusCode.CONFLICT).json({
         success: false,
-        message: 'Email or username already registered',
+        message: `Este ${field} ya está registrado. Por favor usa uno diferente.`,
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
@@ -98,7 +101,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     // Registration successful, do not auto-login, just respond
     res.status(HttpStatusCode.CREATED).json({
       success: true,
-      message: 'Registration successful',
+      message: 'Registro exitoso',
       data: {
         user: {
           id: user._id,
@@ -115,7 +118,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     console.error('Register user error:', error);
     res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'An error occurred. Please try again later.',
+      message: 'Ocurrió un error. Por favor intenta más tarde.',
       timestamp: new Date().toISOString(),
     } as ApiResponse);
   }
@@ -134,7 +137,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     if (!email || !password) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
-        message: 'Email and password are required',
+        message: 'Email y contraseña son requeridos',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
@@ -146,7 +149,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     if (!user || !user.isActive) {
       res.status(HttpStatusCode.UNAUTHORIZED).json({
         success: false,
-        message: 'Invalid credentials',
+        message: 'Credenciales inválidas',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
@@ -158,7 +161,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     if (!isPasswordValid) {
       res.status(HttpStatusCode.UNAUTHORIZED).json({
         success: false,
-        message: 'Invalid credentials',
+        message: 'Credenciales inválidas',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
@@ -169,7 +172,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 
     res.status(HttpStatusCode.OK).json({
       success: true,
-      message: 'Login successful',
+      message: 'Inicio de sesión exitoso',
       data: {
         user: {
           id: user._id,
@@ -188,8 +191,8 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     console.error('Login user error:', error);
     res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Internal server error',
-      error: 'Failed to login user',
+      message: 'Error interno del servidor',
+      error: 'Error al iniciar sesión',
       timestamp: new Date().toISOString(),
     } as ApiResponse);
   }
@@ -338,6 +341,58 @@ export const deleteUserAccount = async (req: AuthenticatedRequest, res: Response
       success: false,
       message: 'Internal server error',
       error: 'Failed to delete user account',
+      timestamp: new Date().toISOString(),
+    } as ApiResponse);
+  }
+};
+
+/**
+ * Logout user - Invalidates session/token
+ * Handles POST /api/auth/logout
+ *
+ * @route POST /api/auth/logout
+ * @access Private
+ * @param {AuthenticatedRequest} req - Express request object with user authentication
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>}
+ */
+export const logoutUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const token = req.token;
+
+    if (!token) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'Token no encontrado',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Decode token to get expiration time
+    const decoded = jwt.decode(token) as any;
+    const expiresAt = new Date(decoded.exp * 1000); // Convert from seconds to milliseconds
+
+    // Add token to blacklist
+    await RevokedToken.create({
+      token,
+      expiresAt,
+    });
+    
+    res.status(HttpStatusCode.OK).json({
+      success: true,
+      message: 'Sesión cerrada exitosamente',
+      data: {
+        redirectTo: '/login'
+      },
+      timestamp: new Date().toISOString(),
+    } as ApiResponse);
+  } catch (error) {
+    console.error('Logout user error:', error);
+    res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Error interno del servidor',
+      error: 'Error al cerrar sesión',
       timestamp: new Date().toISOString(),
     } as ApiResponse);
   }
