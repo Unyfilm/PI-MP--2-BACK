@@ -286,3 +286,5 @@ For questions or support, please contact the development team or create an issue
 - **Database Manager**: MongoDB schemas, queries, data optimization
 - **Project Manager**: Sprint planning, task coordination, version control
 - **QA Tester**: User testing, accessibility validation, bug reporting
+
+Ahora con text de github funcionando
