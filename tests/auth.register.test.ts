@@ -1,20 +1,29 @@
 import request from 'supertest';
 import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 import { User } from '../src/models/User';
 import app from '../src/app';
 
+let mongoServer: MongoMemoryServer;
+
 describe('POST /api/auth/register', () => {
   beforeAll(async () => {
-    // Connect to test DB (use env var or fallback)
-    const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/movie-streaming-test';
-    await mongoose.connect(uri);
-  });
+    // Create in-memory MongoDB instance
+    mongoServer = await MongoMemoryServer.create();
+    const mongoUri = mongoServer.getUri();
+    
+    // Connect to in-memory database
+    await mongoose.connect(mongoUri);
+  }, 30000);
 
   afterAll(async () => {
-    await mongoose.connection.close();
-  });
+    // Close connection and stop MongoDB instance
+    await mongoose.disconnect();
+    await mongoServer.stop();
+  }, 10000);
 
   beforeEach(async () => {
+    // Clear all users before each test
     await User.deleteMany({});
   });
 
@@ -81,6 +90,7 @@ describe('POST /api/auth/register', () => {
   });
 
   it('should fail if email already exists', async () => {
+    // Create existing user in memory database
     await User.create({
       username: 'existinguser',
       email: 'existing@example.com',
@@ -88,6 +98,7 @@ describe('POST /api/auth/register', () => {
       firstName: 'Exist',
       lastName: 'User',
     });
+    
     const res = await request(app)
       .post('/api/auth/register')
       .send({

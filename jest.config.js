@@ -6,4 +6,7 @@ module.exports = {
   transform: { '^.+\\.ts$': 'ts-jest' },
   moduleFileExtensions: ['ts', 'js', 'json'],
   coverageDirectory: 'coverage',
+  testTimeout: 10000,
+  forceExit: true,
+  detectOpenHandles: true,
 };
