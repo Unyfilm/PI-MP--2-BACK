@@ -237,7 +237,7 @@ Authorization: Bearer [TOKEN_FROM_LOGIN]
 ```json
 {
   "success": true,
-  "message": "Logout successful",
+  "message": "Sesión cerrada exitosamente",
   "data": {
     "redirectTo": "/login"
   },
@@ -248,6 +248,135 @@ Authorization: Bearer [TOKEN_FROM_LOGIN]
 ### Caso 2: Sin Token ❌
 **Headers:** (sin Authorization)
 **Respuesta esperada:** `401 Unauthorized`
+
+## Recuperación de Contraseña - POST /api/auth/forgot-password
+
+### Caso 1: Solicitud Exitosa ✅
+**Endpoint:** `POST http://localhost:5000/api/auth/forgot-password`
+**Headers:** `Content-Type: application/json`
+**Body:**
+```json
+{
+  "email": "john.doe@example.com"
+}
+```
+**Respuesta esperada:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Si el email existe en nuestro sistema, recibirás un enlace para restablecer tu contraseña",
+  "timestamp": "..."
+}
+```
+
+### Caso 2: Email Inválido ❌
+**Body:**
+```json
+{
+  "email": "email-invalido"
+}
+```
+**Respuesta esperada:** `400 Bad Request`
+```json
+{
+  "success": false,
+  "message": "Por favor ingresa un email válido",
+  "timestamp": "..."
+}
+```
+
+### Caso 3: Email Faltante ❌
+**Body:**
+```json
+{}
+```
+**Respuesta esperada:** `400 Bad Request`
+```json
+{
+  "success": false,
+  "message": "El email es requerido",
+  "timestamp": "..."
+}
+```
+
+## Restablecer Contraseña - POST /api/auth/reset-password
+
+### Caso 1: Restablecimiento Exitoso ✅
+**Endpoint:** `POST http://localhost:5000/api/auth/reset-password`
+**Headers:** `Content-Type: application/json`
+**Body:**
+```json
+{
+  "token": "[TOKEN_FROM_EMAIL]",
+  "password": "NewPassword123!",
+  "confirmPassword": "NewPassword123!"
+}
+```
+**Respuesta esperada:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Contraseña restablecida exitosamente",
+  "data": {
+    "redirectTo": "/login"
+  },
+  "timestamp": "..."
+}
+```
+
+### Caso 2: Token Inválido ❌
+**Body:**
+```json
+{
+  "token": "token-invalido",
+  "password": "NewPassword123!",
+  "confirmPassword": "NewPassword123!"
+}
+```
+**Respuesta esperada:** `400 Bad Request`
+```json
+{
+  "success": false,
+  "message": "Enlace inválido o caducado",
+  "timestamp": "..."
+}
+```
+
+### Caso 3: Contraseñas No Coinciden ❌
+**Body:**
+```json
+{
+  "token": "[VALID_TOKEN]",
+  "password": "NewPassword123!",
+  "confirmPassword": "DifferentPassword123!"
+}
+```
+**Respuesta esperada:** `400 Bad Request`
+```json
+{
+  "success": false,
+  "message": "Las contraseñas no coinciden",
+  "timestamp": "..."
+}
+```
+
+### Caso 4: Contraseña Débil ❌
+**Body:**
+```json
+{
+  "token": "[VALID_TOKEN]",
+  "password": "weak",
+  "confirmPassword": "weak"
+}
+```
+**Respuesta esperada:** `400 Bad Request`
+```json
+{
+  "success": false,
+  "message": "La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo",
+  "timestamp": "..."
+}
+```
 
 ## Ejemplos de Contraseñas
 

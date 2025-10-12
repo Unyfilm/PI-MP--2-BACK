@@ -7,6 +7,8 @@ import {
   registerUser, 
   loginUser, 
   logoutUser,
+  forgotPassword,
+  resetPassword,
   getUserProfile, 
   updateUserProfile, 
   deleteUserAccount 
@@ -36,6 +38,20 @@ router.post('/login', loginUser);
  * @access  Private
  */
 router.post('/logout', authenticateToken, logoutUser);
+
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    Request password reset
+ * @access  Public
+ */
+router.post('/forgot-password', forgotPassword);
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    Reset password with token
+ * @access  Public
+ */
+router.post('/reset-password', resetPassword);
 
 /**
  * @route   GET /api/users/profile
