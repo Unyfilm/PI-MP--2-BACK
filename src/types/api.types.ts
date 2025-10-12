@@ -62,6 +62,7 @@ export interface JwtPayload {
 export interface AuthenticatedRequest extends Request {
   user?: IUser;
   userId?: string;
+  token?: string;
 }
 
 /**
