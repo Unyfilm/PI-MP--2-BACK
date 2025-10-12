@@ -1,0 +1,74 @@
+name: Node.js CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18.x, 20.x]
+
+    # Minimal env so tests can run without a local .env file
+    env:
+      NODE_ENV: test
+      JWT_SECRET: ci-secret-use-a-better-one
+      JWT_EXPIRES_IN: 1h
+      CLIENT_URL: http://localhost:5173
+      # If you later enable a Mongo service, point to it here
+      MONGODB_URI: mongodb://127.0.0.1:27017/ci-tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies (npm ci)
+        if: hashFiles('**/package-lock.json') != ''
+        run: npm ci
+
+      - name: Install dependencies (npm install fallback)
+        if: hashFiles('**/package-lock.json') == ''
+        run: npm install
+
+      - name: Build (TypeScript)
+        run: npm run build
+
+      - name: Run tests (pass when no tests yet)
+        run: npm test -- --passWithNoTests --coverage
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.node-version }}
+          path: coverage
+          if-no-files-found: ignore
+
+    # If in the future you want an ephemeral MongoDB for integration tests,
+    # uncomment the block below and update MONGODB_URI accordingly.
+    #
+    # services:
+    #   mongo:
+    #     image: mongo:6
+    #     ports: ['27017:27017']
+    #     options: >-
+    #       --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'"
+    #       --health-interval=10s
+    #       --health-timeout=5s
+    #       --health-retries=5
