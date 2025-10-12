@@ -40,7 +40,7 @@ describe('POST /api/auth/register', () => {
       });
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
-    expect(res.body.message).toMatch(/Registration successful/i);
+    expect(res.body.message).toMatch(/registro exitoso/i);
     expect(res.body.data.user.email).toBe('testuser@example.com');
   });
 
@@ -56,7 +56,7 @@ describe('POST /api/auth/register', () => {
         lastName: 'User',
       });
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/invalid email/i);
+    expect(res.body.message).toMatch(/email válido/i);
   });
 
   it('should fail with weak password', async () => {
@@ -71,7 +71,7 @@ describe('POST /api/auth/register', () => {
         lastName: 'User',
       });
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/password/i);
+    expect(res.body.message).toMatch(/contraseña debe tener/i);
   });
 
   it('should fail if passwords do not match', async () => {
@@ -86,7 +86,7 @@ describe('POST /api/auth/register', () => {
         lastName: 'User',
       });
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/passwords do not match/i);
+    expect(res.body.message).toMatch(/contraseñas no coinciden/i);
   });
 
   it('should fail if email already exists', async () => {
@@ -110,6 +110,6 @@ describe('POST /api/auth/register', () => {
         lastName: 'User',
       });
     expect(res.status).toBe(409);
-    expect(res.body.message).toMatch(/already registered/i);
+    expect(res.body.message).toMatch(/ya está registrado/i);
   });
 });
