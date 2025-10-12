@@ -20,6 +20,14 @@ export interface IUser extends Document {
   preferences: UserPreferences;
   createdAt: Date;
   updatedAt: Date;
+  /**
+   * Token for password reset (optional)
+   */
+  resetPasswordToken?: string;
+  /**
+   * Expiration date for the reset token (optional)
+   */
+  resetPasswordExpires?: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
