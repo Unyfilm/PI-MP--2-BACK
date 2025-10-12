@@ -11,6 +11,8 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:workflow": "jest tests/workflow.password-recovery.test.ts --verbose",
+    "test:workflow:coverage": "jest tests/workflow.password-recovery.test.ts --coverage --verbose",
     "clean": "rimraf dist",
     "db:test": "ts-node setup-db.ts test",
     "db:seed": "ts-node setup-db.ts seed",
