@@ -20,7 +20,7 @@ const router = Router();
  * @desc    Register a new user
  * @access  Public
  */
-router.post('/register', validateUserRegistration, registerUser);
+router.post('/register', registerUser);
 
 /**
  * @route   POST /api/auth/login
