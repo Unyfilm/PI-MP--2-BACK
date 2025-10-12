@@ -32,42 +32,38 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
 
     // Validate input
     if (!username || !email || !password || !confirmPassword || !firstName || !lastName) {
-      res.status(HttpStatusCode.BAD_REQUEST).json({
+      return res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
         message: 'All fields are required',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
-      return;
     }
 
-    // Validate email format
-    if (!validateEmail(email)) {
-      res.status(HttpStatusCode.BAD_REQUEST).json({
+    // Validate email format (específico)
+    if (typeof email !== 'string' || !validateEmail(email)) {
+      return res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
         message: 'Invalid email address',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
-      return;
     }
 
-    // Validate password strength
-    if (!validatePassword(password)) {
-      res.status(HttpStatusCode.BAD_REQUEST).json({
+    // Validate password strength (específico)
+    if (typeof password !== 'string' || !validatePassword(password)) {
+      return res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
         message: 'Password must be at least 8 characters, include an uppercase letter, a number, and a symbol.',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
-      return;
     }
 
     // Confirm password match
     if (password !== confirmPassword) {
-      res.status(HttpStatusCode.BAD_REQUEST).json({
+      return res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
         message: 'Passwords do not match',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
-      return;
     }
 
     // Check if user already exists
@@ -76,12 +72,11 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     });
 
     if (existingUser) {
-      res.status(HttpStatusCode.CONFLICT).json({
+      return res.status(HttpStatusCode.CONFLICT).json({
         success: false,
         message: 'Email or username already registered',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
-      return;
     }
 
     // Create new user
@@ -96,7 +91,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     await user.save();
 
     // Registration successful, do not auto-login, just respond
-    res.status(HttpStatusCode.CREATED).json({
+    return res.status(HttpStatusCode.CREATED).json({
       success: true,
       message: 'Registration successful',
       data: {
@@ -113,7 +108,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     } as ApiResponse);
   } catch (error) {
     console.error('Register user error:', error);
-    res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+    return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: 'An error occurred. Please try again later.',
       timestamp: new Date().toISOString(),
