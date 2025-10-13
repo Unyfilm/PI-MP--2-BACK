@@ -10,7 +10,8 @@ import {
   forgotPassword,
   resetPassword,
   getUserProfile, 
-  updateUserProfile, 
+  updateUserProfile,
+  changeUserPassword,
   deleteUserAccount 
 } from '../controllers/userController';
 import { authenticateToken } from '../middleware/auth';
@@ -66,6 +67,13 @@ router.get('/profile', authenticateToken, getUserProfile);
  * @access  Private
  */
 router.put('/profile', authenticateToken, validateUserUpdate, updateUserProfile);
+
+/**
+ * @route   PUT /api/users/change-password
+ * @desc    Change user password
+ * @access  Private
+ */
+router.put('/change-password', authenticateToken, changeUserPassword);
 
 /**
  * @route   DELETE /api/users/account

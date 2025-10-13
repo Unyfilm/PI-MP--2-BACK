@@ -202,19 +202,32 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 
 /**
  * Get user profile
+ * Retrieves the authenticated user's profile information
  * @route GET /api/users/profile
  * @access Private
+ * @param {AuthenticatedRequest} req - Express request object with authenticated user
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>}
  */
 export const getUserProfile = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId;
 
-    const user = await User.findById(userId);
+    if (!userId) {
+      res.status(HttpStatusCode.UNAUTHORIZED).json({
+        success: false,
+        message: 'Usuario no autenticado',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
 
-    if (!user) {
+    const user = await User.findById(userId).select('-password -resetPasswordToken -resetPasswordExpires');
+
+    if (!user || !user.isActive) {
       res.status(HttpStatusCode.NOT_FOUND).json({
         success: false,
-        message: 'User not found',
+        message: 'Usuario no encontrado',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
@@ -222,17 +235,19 @@ export const getUserProfile = async (req: AuthenticatedRequest, res: Response): 
 
     res.status(HttpStatusCode.OK).json({
       success: true,
-      message: 'Profile retrieved successfully',
+      message: 'Perfil obtenido exitosamente',
       data: {
         id: user._id,
         username: user.username,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        fullName: user.fullName,
         profilePicture: user.profilePicture,
         role: user.role,
         preferences: user.preferences,
         createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       },
       timestamp: new Date().toISOString(),
     } as ApiResponse);
@@ -240,8 +255,8 @@ export const getUserProfile = async (req: AuthenticatedRequest, res: Response): 
     console.error('Get user profile error:', error);
     res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Internal server error',
-      error: 'Failed to get user profile',
+      message: 'Error interno del servidor',
+      error: 'Error al obtener el perfil del usuario',
       timestamp: new Date().toISOString(),
     } as ApiResponse);
   }
@@ -249,34 +264,160 @@ export const getUserProfile = async (req: AuthenticatedRequest, res: Response): 
 
 /**
  * Update user profile
+ * Updates the authenticated user's profile information with validation
  * @route PUT /api/users/profile
  * @access Private
+ * @param {AuthenticatedRequest} req - Express request object with authenticated user and update data
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>}
  */
 export const updateUserProfile = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId;
     const updateData: UpdateUserRequest = req.body;
 
-    // Remove sensitive fields that shouldn't be updated via this endpoint
-    const allowedFields = ['username', 'firstName', 'lastName', 'profilePicture', 'preferences'];
+    if (!userId) {
+      res.status(HttpStatusCode.UNAUTHORIZED).json({
+        success: false,
+        message: 'Usuario no autenticado',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Validate input fields
+    if (!updateData || Object.keys(updateData).length === 0) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'No se proporcionaron datos para actualizar',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Define allowed fields for profile update
+    const allowedFields = ['username', 'firstName', 'lastName', 'email', 'profilePicture', 'preferences'];
     const filteredUpdateData: any = {};
 
-    Object.keys(updateData).forEach(key => {
+    // Filter and validate each field
+    for (const key of Object.keys(updateData)) {
       if (allowedFields.includes(key)) {
-        filteredUpdateData[key] = updateData[key as keyof UpdateUserRequest];
-      }
-    });
+        const value = updateData[key as keyof UpdateUserRequest];
+        
+        // Skip empty values
+        if (value === undefined || value === null || value === '') {
+          continue;
+        }
 
-    const user = await User.findByIdAndUpdate(
+        // Validate specific fields
+        if (key === 'email' && value) {
+          if (!validateEmail(value as string)) {
+            res.status(HttpStatusCode.BAD_REQUEST).json({
+              success: false,
+              message: 'Por favor ingresa un email válido',
+              timestamp: new Date().toISOString(),
+            } as ApiResponse);
+            return;
+          }
+
+          // Check if email is already taken by another user
+          const existingUser = await User.findOne({ 
+            email: value, 
+            _id: { $ne: userId },
+            isActive: true 
+          });
+          
+          if (existingUser) {
+            res.status(HttpStatusCode.CONFLICT).json({
+              success: false,
+              message: 'Este email ya está en uso por otro usuario',
+              timestamp: new Date().toISOString(),
+            } as ApiResponse);
+            return;
+          }
+        }
+
+        if (key === 'username' && value) {
+          // Validate username format
+          if (typeof value === 'string' && value.length < 3) {
+            res.status(HttpStatusCode.BAD_REQUEST).json({
+              success: false,
+              message: 'El nombre de usuario debe tener al menos 3 caracteres',
+              timestamp: new Date().toISOString(),
+            } as ApiResponse);
+            return;
+          }
+
+          // Check if username is already taken
+          const existingUser = await User.findOne({ 
+            username: value, 
+            _id: { $ne: userId },
+            isActive: true 
+          });
+          
+          if (existingUser) {
+            res.status(HttpStatusCode.CONFLICT).json({
+              success: false,
+              message: 'Este nombre de usuario ya está en uso',
+              timestamp: new Date().toISOString(),
+            } as ApiResponse);
+            return;
+          }
+        }
+
+        if (key === 'firstName' && value) {
+          if (typeof value === 'string' && value.length < 2) {
+            res.status(HttpStatusCode.BAD_REQUEST).json({
+              success: false,
+              message: 'El nombre debe tener al menos 2 caracteres',
+              timestamp: new Date().toISOString(),
+            } as ApiResponse);
+            return;
+          }
+        }
+
+        if (key === 'lastName' && value) {
+          if (typeof value === 'string' && value.length < 2) {
+            res.status(HttpStatusCode.BAD_REQUEST).json({
+              success: false,
+              message: 'El apellido debe tener al menos 2 caracteres',
+              timestamp: new Date().toISOString(),
+            } as ApiResponse);
+            return;
+          }
+        }
+
+        filteredUpdateData[key] = value;
+      }
+    }
+
+    if (Object.keys(filteredUpdateData).length === 0) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'No se encontraron campos válidos para actualizar',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Update user with validation
+    const updatedUser = await User.findByIdAndUpdate(
       userId,
-      filteredUpdateData,
-      { new: true, runValidators: true }
+      { 
+        ...filteredUpdateData,
+        updatedAt: new Date()
+      },
+      { 
+        new: true, 
+        runValidators: true,
+        select: '-password -resetPasswordToken -resetPasswordExpires'
+      }
     );
 
-    if (!user) {
+    if (!updatedUser || !updatedUser.isActive) {
       res.status(HttpStatusCode.NOT_FOUND).json({
         success: false,
-        message: 'User not found',
+        message: 'Usuario no encontrado',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
@@ -284,24 +425,167 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
 
     res.status(HttpStatusCode.OK).json({
       success: true,
-      message: 'Profile updated successfully',
+      message: 'Perfil actualizado exitosamente',
       data: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        profilePicture: user.profilePicture,
-        preferences: user.preferences,
+        id: updatedUser._id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        fullName: updatedUser.fullName,
+        profilePicture: updatedUser.profilePicture,
+        preferences: updatedUser.preferences,
+        updatedAt: updatedUser.updatedAt,
       },
       timestamp: new Date().toISOString(),
     } as ApiResponse);
-  } catch (error) {
+
+  } catch (error: any) {
     console.error('Update user profile error:', error);
+    
+    // Handle mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map((err: any) => err.message);
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'Datos de entrada inválidos',
+        error: validationErrors.join(', '),
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      let message = 'Este valor ya está en uso';
+      
+      if (field === 'email') {
+        message = 'Este email ya está registrado';
+      } else if (field === 'username') {
+        message = 'Este nombre de usuario ya está en uso';
+      }
+
+      res.status(HttpStatusCode.CONFLICT).json({
+        success: false,
+        message,
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
     res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Internal server error',
-      error: 'Failed to update user profile',
+      message: 'Error interno del servidor',
+      error: 'Error al actualizar el perfil del usuario',
+      timestamp: new Date().toISOString(),
+    } as ApiResponse);
+  }
+};
+
+/**
+ * Change user password
+ * Updates the authenticated user's password with security validation
+ * @route PUT /api/users/change-password
+ * @access Private
+ * @param {AuthenticatedRequest} req - Express request object with authenticated user and password data
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>}
+ */
+export const changeUserPassword = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.userId;
+    const { currentPassword, newPassword, confirmPassword }: ChangePasswordRequest = req.body;
+
+    if (!userId) {
+      res.status(HttpStatusCode.UNAUTHORIZED).json({
+        success: false,
+        message: 'Usuario no autenticado',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Validate input
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'Todos los campos son requeridos',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Validate new password confirmation
+    if (newPassword !== confirmPassword) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'Las contraseñas no coinciden',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Validate new password strength
+    if (!validatePassword(newPassword)) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Find user and verify current password
+    const user = await User.findById(userId).select('+password');
+    if (!user || !user.isActive) {
+      res.status(HttpStatusCode.NOT_FOUND).json({
+        success: false,
+        message: 'Usuario no encontrado',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+    if (!isCurrentPasswordValid) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'La contraseña actual es incorrecta',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Check if new password is different from current
+    const isSamePassword = await user.comparePassword(newPassword);
+    if (isSamePassword) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'La nueva contraseña debe ser diferente a la actual',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Update password (will be hashed by pre-save middleware)
+    user.password = newPassword;
+    user.updatedAt = new Date();
+    await user.save();
+
+    res.status(HttpStatusCode.OK).json({
+      success: true,
+      message: 'Contraseña actualizada exitosamente',
+      timestamp: new Date().toISOString(),
+    } as ApiResponse);
+
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Error interno del servidor',
+      error: 'Error al cambiar la contraseña',
       timestamp: new Date().toISOString(),
     } as ApiResponse);
   }
