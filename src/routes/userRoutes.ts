@@ -77,7 +77,7 @@ router.put('/change-password', authenticateToken, changeUserPassword);
 
 /**
  * @route   DELETE /api/users/account
- * @desc    Delete user account (soft delete)
+ * @desc    Delete user account permanently (hard delete) - US-5
  * @access  Private
  */
 router.delete('/account', authenticateToken, deleteUserAccount);

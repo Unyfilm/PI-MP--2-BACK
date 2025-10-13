@@ -592,41 +592,90 @@ export const changeUserPassword = async (req: AuthenticatedRequest, res: Respons
 };
 
 /**
- * Delete user account
+ * Delete user account - Permanently removes user data from database
+ * Handles DELETE /api/users/account endpoint for US-5 - Eliminar cuenta
+ * 
+ * This endpoint completely removes the user's account and all associated data
+ * from the database. Once deleted, the account cannot be recovered.
+ * 
  * @route DELETE /api/users/account
- * @access Private
+ * @access Private - Requires valid JWT authentication token
+ * @param {AuthenticatedRequest} req - Express request object with authenticated user data
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} JSON response indicating success/failure of account deletion
+ * 
+ * @example
+ * // Success Response
+ * {
+ *   "success": true,
+ *   "message": "Cuenta eliminada exitosamente",
+ *   "data": {
+ *     "redirectTo": "/register",
+ *     "message": "Cuenta eliminada"
+ *   },
+ *   "timestamp": "2025-01-01T12:00:00.000Z"
+ * }
+ * 
+ * @example
+ * // Error Response
+ * {
+ *   "success": false,
+ *   "message": "Usuario no encontrado",
+ *   "timestamp": "2025-01-01T12:00:00.000Z"
+ * }
  */
 export const deleteUserAccount = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId;
 
-    // Soft delete by setting isActive to false
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { isActive: false },
-      { new: true }
-    );
-
-    if (!user) {
-      res.status(HttpStatusCode.NOT_FOUND).json({
+    if (!userId) {
+      res.status(HttpStatusCode.UNAUTHORIZED).json({
         success: false,
-        message: 'User not found',
+        message: 'Usuario no autenticado',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
     }
 
+    // Find the user first to ensure they exist
+    const user = await User.findById(userId);
+    
+    if (!user || !user.isActive) {
+      res.status(HttpStatusCode.NOT_FOUND).json({
+        success: false,
+        message: 'Usuario no encontrado',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Permanently delete user data from database (hard delete)
+    await User.findByIdAndDelete(userId);
+
+    console.log(`User account deleted successfully: ${user.email} (ID: ${userId})`);
+
+    // Response with redirect information for frontend
     res.status(HttpStatusCode.OK).json({
       success: true,
-      message: 'Account deleted successfully',
+      message: 'Cuenta eliminada exitosamente',
+      data: {
+        redirectTo: '/register',
+        message: 'Cuenta eliminada',
+        deletedUser: {
+          email: user.email,
+          username: user.username,
+          deletedAt: new Date().toISOString()
+        }
+      },
       timestamp: new Date().toISOString(),
     } as ApiResponse);
+
   } catch (error) {
     console.error('Delete user account error:', error);
     res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Internal server error',
-      error: 'Failed to delete user account',
+      message: 'Error interno del servidor',
+      error: 'Error al eliminar la cuenta',
       timestamp: new Date().toISOString(),
     } as ApiResponse);
   }
