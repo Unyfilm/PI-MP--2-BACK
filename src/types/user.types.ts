@@ -28,6 +28,10 @@ export interface IUser extends Document {
    * Expiration date for the reset token (optional)
    */
   resetPasswordExpires?: Date;
+  /**
+   * Virtual property for full name
+   */
+  fullName: string;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -103,4 +107,5 @@ export interface ResetPasswordRequest {
 export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;
+  confirmPassword: string;
 }
