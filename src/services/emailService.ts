@@ -16,16 +16,29 @@ interface EmailOptions {
 }
 
 /**
- * Create email transporter
+ * Create email transporter with production-specific configuration
  */
 const createTransporter = () => {
-  return nodemailer.createTransport({
-    service: 'gmail',
+  // Production-optimized configuration for Render
+  const transportConfig = {
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // true for 465, false for other ports
     auth: {
       user: config.email.user,
       pass: config.email.pass, // App password, not regular password
     },
-  });
+    // Production-specific settings for Render
+    tls: {
+      rejectUnauthorized: false,
+      ciphers: 'SSLv3'
+    },
+    connectionTimeout: 60000, // 60s
+    greetingTimeout: 30000,    // 30s
+    socketTimeout: 60000,      // 60s
+  };
+
+  return nodemailer.createTransport(transportConfig);
 };
 
 /**
@@ -37,13 +50,18 @@ export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
   try {
     // Check if email service is configured
     if (!config.email.user || !config.email.pass) {
-      console.log(`[EMAIL SIMULATION] Would send email to: ${options.to}`);
-      console.log(`Subject: ${options.subject}`);
-      console.log(`Content: ${options.text || options.html}`);
+      console.log(`📧 [EMAIL SIMULATION] Would send email to: ${options.to}`);
+      console.log(`📧 Subject: ${options.subject}`);
+      console.log(`📧 Content: ${options.text || options.html}`);
       return true;
     }
 
+    console.log(`📤 Attempting to send email to: ${options.to}`);
     const transporter = createTransporter();
+    
+    // Verify transporter configuration
+    await transporter.verify();
+    console.log('📡 Email transporter verified successfully');
     
     const mailOptions = {
       from: `"Movie Platform" <${config.email.user}>`,
@@ -57,8 +75,16 @@ export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
     console.log(`✅ Email sent successfully to ${options.to}. MessageId: ${result.messageId}`);
     return true;
 
-  } catch (error) {
-    console.error('❌ Email sending failed:', error);
+  } catch (error: any) {
+    console.error('❌ Email sending failed:', error.message);
+    console.error('🔧 Error details:', {
+      code: error.code,
+      command: error.command,
+      response: error.response
+    });
+    
+    // Graceful fallback - don't break the password reset flow
+    console.log('🔄 Email service unavailable, but password reset token is still valid');
     return false;
   }
 };
