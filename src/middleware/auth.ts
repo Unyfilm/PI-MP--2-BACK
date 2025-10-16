@@ -5,6 +5,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
+import { RevokedToken } from '../models/RevokedToken';
 import { AuthenticatedRequest, JwtPayload, HttpStatusCode, ApiResponse } from '../types/api.types';
 import { UserRole } from '../types/user.types';
 import { config } from '../config/environment';
@@ -35,6 +36,17 @@ export const authenticateToken = async (
       return;
     }
 
+    // Check if token is blacklisted
+    const revokedToken = await RevokedToken.findOne({ token });
+    if (revokedToken) {
+      res.status(HttpStatusCode.UNAUTHORIZED).json({
+        success: false,
+        message: 'Token has been revoked',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
     // Verify token
     const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
 
@@ -44,7 +56,7 @@ export const authenticateToken = async (
     if (!user || !user.isActive) {
       res.status(HttpStatusCode.UNAUTHORIZED).json({
         success: false,
-        message: 'Invalid token or user not found',
+        message: 'Token inválido o usuario no encontrado',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
@@ -53,6 +65,7 @@ export const authenticateToken = async (
     // Attach user information to request
     req.user = user;
     req.userId = user._id;
+    req.token = token; // Add token to request for logout functionality
 
     next();
   } catch (error) {

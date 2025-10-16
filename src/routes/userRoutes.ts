@@ -6,8 +6,12 @@ import { Router } from 'express';
 import { 
   registerUser, 
   loginUser, 
+  logoutUser,
+  forgotPassword,
+  resetPassword,
   getUserProfile, 
-  updateUserProfile, 
+  updateUserProfile,
+  changeUserPassword,
   deleteUserAccount 
 } from '../controllers/userController';
 import { authenticateToken } from '../middleware/auth';
@@ -20,14 +24,35 @@ const router = Router();
  * @desc    Register a new user
  * @access  Public
  */
-router.post('/register', validateUserRegistration, registerUser);
+router.post('/register', registerUser);
 
 /**
  * @route   POST /api/auth/login
  * @desc    Login user
  * @access  Public
  */
-router.post('/login', validateUserLogin, loginUser);
+router.post('/login', loginUser);
+
+/**
+ * @route   POST /api/auth/logout
+ * @desc    Logout user
+ * @access  Private
+ */
+router.post('/logout', authenticateToken, logoutUser);
+
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    Request password reset
+ * @access  Public
+ */
+router.post('/forgot-password', forgotPassword);
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    Reset password with token
+ * @access  Public
+ */
+router.post('/reset-password', resetPassword);
 
 /**
  * @route   GET /api/users/profile
@@ -44,8 +69,15 @@ router.get('/profile', authenticateToken, getUserProfile);
 router.put('/profile', authenticateToken, validateUserUpdate, updateUserProfile);
 
 /**
+ * @route   PUT /api/users/change-password
+ * @desc    Change user password
+ * @access  Private
+ */
+router.put('/change-password', authenticateToken, changeUserPassword);
+
+/**
  * @route   DELETE /api/users/account
- * @desc    Delete user account (soft delete)
+ * @desc    Delete user account permanently (hard delete) - US-5
  * @access  Private
  */
 router.delete('/account', authenticateToken, deleteUserAccount);

@@ -73,6 +73,20 @@ const userSchema = new Schema<IUser>({
     type: String,
     default: '',
   },
+  /**
+   * Token for password reset (optional)
+   */
+  resetPasswordToken: {
+    type: String,
+    default: undefined,
+  },
+  /**
+   * Expiration date for the reset token (optional)
+   */
+  resetPasswordExpires: {
+    type: Date,
+    default: undefined,
+  },
   isActive: {
     type: Boolean,
     default: true,
@@ -115,6 +129,9 @@ userSchema.pre('save', async function(next: any) {
  * Compare password method
  */
 userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
+  if (!this.password) {
+    return false;
+  }
   return bcrypt.compare(candidatePassword, this.password);
 };
 
