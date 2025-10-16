@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: pi-mp-2-back
+    env: node
+    plan: free
+    buildCommand: npm ci && npm run build:prod
+    startCommand: npm run start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    autoDeploy: true
+    branch: main

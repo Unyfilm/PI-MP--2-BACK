@@ -1,0 +1,8 @@
+tests/
+*.test.ts
+.env
+.env.test
+coverage/
+docs/
+*.md
+.vscode/

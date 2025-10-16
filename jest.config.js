@@ -6,7 +6,20 @@ module.exports = {
   transform: { '^.+\\.ts$': 'ts-jest' },
   moduleFileExtensions: ['ts', 'js', 'json'],
   coverageDirectory: 'coverage',
-  testTimeout: 10000,
+  testTimeout: 15000, // Increased for MongoDB Memory Server
   forceExit: true,
   detectOpenHandles: true,
+  
+  // Ensure tests use test environment
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  
+  // Exclude production files
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/coverage/'
+  ],
+  
+  // Environment variables for tests
+  setupFiles: ['<rootDir>/tests/env.setup.js']
 };

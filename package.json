@@ -16,7 +16,12 @@
     "clean": "rimraf dist",
     "db:test": "ts-node setup-db.ts test",
     "db:seed": "ts-node setup-db.ts seed",
-    "db:reset": "ts-node setup-db.ts reset"
+    "db:reset": "ts-node setup-db.ts reset",
+    "start:prod": "NODE_ENV=production node dist/server.js",
+    "build:prod": "npm run clean && npm run build",
+    "health-check": "curl -f http://localhost:$PORT/health || exit 1",
+    "validate:prod": "NODE_ENV=production ts-node -e \"import('./src/config/environment').then(({validateConfig}) => validateConfig())\"",
+    "db:migrate:prod": "NODE_ENV=production ts-node setup-db.ts migrate"
   },
   "keywords": [
     "nodejs",
