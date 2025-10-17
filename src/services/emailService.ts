@@ -1,8 +1,9 @@
 /**
- * Email service for sending notifications
+ * Email service for sending notifications with SendGrid API and Nodemailer fallback
  */
 
 import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 import { config } from '../config/environment';
 
 /**
@@ -57,13 +58,12 @@ const createTransporter = () => {
 };
 
 /**
- * Send email function
+ * Send email using SendGrid API (preferred) or Nodemailer fallback
  * @param {EmailOptions} options - Email options
  * @returns {Promise<boolean>} Success status
  */
 export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
   try {
-    // Check if email service is configured
     const sendgridApiKey = process.env.SENDGRID_API_KEY;
     const emailService = process.env.EMAIL_SERVICE || config.email.service;
     const hasGmailConfig = config.email.user && config.email.pass;
@@ -76,14 +76,70 @@ export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
       return true;
     }
 
-    console.log(`📤 Attempting to send email to: ${options.to} using ${emailService}`);
+    // PRIORITY 1: Use SendGrid API (HTTP - no blocked ports)
+    if (hasSendGridConfig) {
+      return await sendEmailWithSendGrid(options, sendgridApiKey!);
+    }
+
+    // PRIORITY 2: Fallback to Gmail SMTP
+    if (hasGmailConfig) {
+      return await sendEmailWithNodemailer(options);
+    }
+
+    return false;
+
+  } catch (error: any) {
+    console.error('❌ Email service failed:', error.message);
+    return false;
+  }
+};
+
+/**
+ * Send email using SendGrid API (HTTP - production ready)
+ */
+const sendEmailWithSendGrid = async (options: EmailOptions, apiKey: string): Promise<boolean> => {
+  try {
+    sgMail.setApiKey(apiKey);
+    
+    const senderEmail = process.env.EMAIL_FROM || config.email.user;
+    
+    // Use the simplest format that always works
+    const msg = {
+      to: options.to,
+      from: senderEmail,
+      subject: options.subject,
+      text: options.text || '',
+      html: options.html || options.text || '',
+    };
+
+    console.log(`📤 Sending email via SendGrid API to: ${options.to}`);
+    const result = await sgMail.send(msg);
+    
+    console.log(`✅ Email sent successfully via SendGrid to ${options.to}`);
+    console.log(`📧 SendGrid Response Status: ${result[0].statusCode}`);
+    return true;
+
+  } catch (error: any) {
+    console.error('❌ SendGrid API failed:', error.message);
+    if (error.response) {
+      console.error('🔧 SendGrid Error Details:', error.response.body);
+    }
+    throw error;
+  }
+};
+
+/**
+ * Send email using Nodemailer (Gmail SMTP fallback)
+ */
+const sendEmailWithNodemailer = async (options: EmailOptions): Promise<boolean> => {
+  try {
+    console.log(`📤 Sending email via Gmail SMTP to: ${options.to}`);
     const transporter = createTransporter();
     
     // Verify transporter configuration
     await transporter.verify();
-    console.log('📡 Email transporter verified successfully');
+    console.log('📡 Gmail SMTP transporter verified successfully');
     
-    // Determine sender email
     const senderEmail = process.env.EMAIL_FROM || config.email.user;
     const mailOptions = {
       from: `"Movie Platform" <${senderEmail}>`,
@@ -94,20 +150,17 @@ export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
     };
 
     const result = await transporter.sendMail(mailOptions);
-    console.log(`✅ Email sent successfully to ${options.to}. MessageId: ${result.messageId}`);
+    console.log(`✅ Email sent successfully via Gmail SMTP to ${options.to}. MessageId: ${result.messageId}`);
     return true;
 
   } catch (error: any) {
-    console.error('❌ Email sending failed:', error.message);
-    console.error('🔧 Error details:', {
+    console.error('❌ Gmail SMTP failed:', error.message);
+    console.error('🔧 SMTP Error Details:', {
       code: error.code,
       command: error.command,
       response: error.response
     });
-    
-    // Graceful fallback - don't break the password reset flow
-    console.log('🔄 Email service unavailable, but password reset token is still valid');
-    return false;
+    throw error;
   }
 };
 
