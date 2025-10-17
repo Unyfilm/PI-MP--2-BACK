@@ -614,7 +614,7 @@ export const changeUserPassword = async (req: AuthenticatedRequest, res: Respons
     // Update password (will be hashed by pre-save middleware)
     user.password = newPassword;
     user.updatedAt = new Date();
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
 
     res.status(HttpStatusCode.OK).json({
       success: true,
@@ -825,7 +825,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       // Save token to user document
       user.resetPasswordToken = resetToken;
       user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-      await user.save();
+      await user.save({ validateModifiedOnly: true });
 
       // Send reset email
       const resetLink = `${config.clientUrl}/reset-password?token=${resetToken}`;
@@ -939,7 +939,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     user.password = password; // Will be hashed by pre-save hook
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
 
     res.status(HttpStatusCode.OK).json({
       success: true,
