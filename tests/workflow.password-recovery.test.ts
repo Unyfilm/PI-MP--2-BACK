@@ -42,6 +42,7 @@ describe('🚀 GitHub Workflow - Password Recovery API', () => {
       lastName: 'Test',
       email: 'workflow.test@movieplatform.com',
       password: 'OriginalPassword123!',
+      age: 25,
       isActive: true,
     });
     console.log(`👤 Test user created: ${testUser.email}`);

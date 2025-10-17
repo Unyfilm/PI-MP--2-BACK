@@ -40,6 +40,7 @@ describe('Profile Management APIs', () => {
         confirmPassword: 'ProfileTest123!',
         firstName: 'Profile',
         lastName: 'Test',
+        age: 25,
       });
 
     const loginRes = await request(app)
@@ -161,6 +162,7 @@ describe('Profile Management APIs', () => {
           confirmPassword: 'AnotherTest123!',
           firstName: 'Another',
           lastName: 'User',
+          age: 30,
         });
 
       const res = await request(app)
@@ -190,6 +192,7 @@ describe('Profile Management APIs', () => {
           confirmPassword: 'DuplicateTest123!',
           firstName: 'Duplicate',
           lastName: 'User',
+          age: 30,
         });
 
       const res = await request(app)

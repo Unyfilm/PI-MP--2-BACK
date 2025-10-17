@@ -40,6 +40,7 @@ describe('DELETE /api/users/account - Account Deletion', () => {
         confirmPassword: 'DeleteTest123!',
         firstName: 'Delete',
         lastName: 'Test',
+        age: 25,
       });
 
     const loginRes = await request(app)
@@ -215,6 +216,7 @@ describe('DELETE /api/users/account - Account Deletion', () => {
           confirmPassword: 'NewPassword123!',
           firstName: 'New',
           lastName: 'User',
+          age: 28,
         });
       
       expect(reregisterRes.status).toBe(201);

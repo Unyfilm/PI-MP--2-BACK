@@ -37,6 +37,7 @@ describe('POST /api/auth/login & /api/auth/logout', () => {
       password: 'TestPassword123!',
       firstName: 'Test',
       lastName: 'User',
+      age: 25,
     });
   });
 
