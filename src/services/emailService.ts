@@ -16,10 +16,25 @@ interface EmailOptions {
 }
 
 /**
- * Create email transporter with production-specific configuration
+ * Create email transporter with support for multiple services
  */
 const createTransporter = () => {
-  // Production-optimized configuration for Render
+  // Check for SendGrid configuration
+  const sendgridApiKey = process.env.SENDGRID_API_KEY;
+  const emailService = process.env.EMAIL_SERVICE || config.email.service;
+  
+  if (emailService === 'SendGrid' && sendgridApiKey) {
+    // SendGrid configuration
+    return nodemailer.createTransport({
+      service: 'SendGrid',
+      auth: {
+        user: 'apikey',
+        pass: sendgridApiKey,
+      },
+    });
+  }
+
+  // Gmail configuration (fallback)
   const transportConfig = {
     host: 'smtp.gmail.com',
     port: 587,
@@ -49,22 +64,29 @@ const createTransporter = () => {
 export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
   try {
     // Check if email service is configured
-    if (!config.email.user || !config.email.pass) {
+    const sendgridApiKey = process.env.SENDGRID_API_KEY;
+    const emailService = process.env.EMAIL_SERVICE || config.email.service;
+    const hasGmailConfig = config.email.user && config.email.pass;
+    const hasSendGridConfig = emailService === 'SendGrid' && sendgridApiKey;
+    
+    if (!hasGmailConfig && !hasSendGridConfig) {
       console.log(`📧 [EMAIL SIMULATION] Would send email to: ${options.to}`);
       console.log(`📧 Subject: ${options.subject}`);
       console.log(`📧 Content: ${options.text || options.html}`);
       return true;
     }
 
-    console.log(`📤 Attempting to send email to: ${options.to}`);
+    console.log(`📤 Attempting to send email to: ${options.to} using ${emailService}`);
     const transporter = createTransporter();
     
     // Verify transporter configuration
     await transporter.verify();
     console.log('📡 Email transporter verified successfully');
     
+    // Determine sender email
+    const senderEmail = process.env.EMAIL_FROM || config.email.user;
     const mailOptions = {
-      from: `"Movie Platform" <${config.email.user}>`,
+      from: `"Movie Platform" <${senderEmail}>`,
       to: options.to,
       subject: options.subject,
       text: options.text,
