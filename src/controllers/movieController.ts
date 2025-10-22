@@ -12,6 +12,7 @@ import {
   SortOrder 
 } from '../types/movie.types';
 import { ApiResponse, PaginatedResponse, AuthenticatedRequest, HttpStatusCode, PaginationQuery } from '../types/api.types';
+import { cloudinaryService } from '../services/cloudinaryService';
 
 /**
  * Get all movies with pagination and filters
@@ -314,6 +315,128 @@ export const deleteMovie = async (req: AuthenticatedRequest, res: Response): Pro
       success: false,
       message: 'Internal server error',
       error: 'Failed to delete movie',
+      timestamp: new Date().toISOString(),
+    } as ApiResponse);
+  }
+};
+
+/**
+ * Get movie video URL (signed URL from Cloudinary)
+ * @route GET /api/movies/:id/video
+ * @access Public
+ */
+export const getMovieVideo = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { duration = 3600, width, height, quality = 'auto' } = req.query;
+
+    const movie = await Movie.findById(id);
+
+    if (!movie || !movie.isActive) {
+      res.status(HttpStatusCode.NOT_FOUND).json({
+        success: false,
+        message: 'Movie not found',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    if (!movie.cloudinaryVideoId) {
+      res.status(HttpStatusCode.NOT_FOUND).json({
+        success: false,
+        message: 'Video not available for this movie',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Generate signed URL with transformations
+    const signedUrl = cloudinaryService.generateSignedVideoUrl(movie.cloudinaryVideoId, {
+      duration: Number(duration),
+      transformation: {
+        width: width ? Number(width) : undefined,
+        height: height ? Number(height) : undefined,
+        quality: quality as string,
+        format: 'mp4'
+      }
+    });
+
+    res.status(HttpStatusCode.OK).json({
+      success: true,
+      message: 'Video URL generated successfully',
+      data: {
+        videoUrl: signedUrl,
+        expiresIn: Number(duration),
+        movieId: movie._id,
+        title: movie.title,
+        duration: movie.duration
+      },
+      timestamp: new Date().toISOString(),
+    } as ApiResponse);
+  } catch (error) {
+    console.error('Get movie video error:', error);
+    res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Internal server error',
+      error: 'Failed to generate video URL',
+      timestamp: new Date().toISOString(),
+    } as ApiResponse);
+  }
+};
+
+/**
+ * Get movie video info (duration, dimensions, etc.)
+ * @route GET /api/movies/:id/video/info
+ * @access Public
+ */
+export const getMovieVideoInfo = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const movie = await Movie.findById(id);
+
+    if (!movie || !movie.isActive) {
+      res.status(HttpStatusCode.NOT_FOUND).json({
+        success: false,
+        message: 'Movie not found',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    if (!movie.cloudinaryVideoId) {
+      res.status(HttpStatusCode.NOT_FOUND).json({
+        success: false,
+        message: 'Video not available for this movie',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Get video info from Cloudinary
+    const videoInfo = await cloudinaryService.getVideoInfo(movie.cloudinaryVideoId);
+
+    res.status(HttpStatusCode.OK).json({
+      success: true,
+      message: 'Video info retrieved successfully',
+      data: {
+        movieId: movie._id,
+        title: movie.title,
+        cloudinaryVideoId: movie.cloudinaryVideoId,
+        duration: videoInfo.duration,
+        width: videoInfo.width,
+        height: videoInfo.height,
+        format: videoInfo.format,
+        createdAt: videoInfo.created_at
+      },
+      timestamp: new Date().toISOString(),
+    } as ApiResponse);
+  } catch (error) {
+    console.error('Get movie video info error:', error);
+    res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Internal server error',
+      error: 'Failed to get video info',
       timestamp: new Date().toISOString(),
     } as ApiResponse);
   }

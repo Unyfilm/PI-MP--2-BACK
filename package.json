@@ -23,7 +23,8 @@
     "validate:prod": "NODE_ENV=production ts-node -e \"import('./src/config/environment').then(({validateConfig}) => validateConfig())\"",
     "db:migrate:prod": "NODE_ENV=production ts-node setup-db.ts migrate",
     "migrate:age": "ts-node src/scripts/migrateAge.ts",
-    "migrate:username": "ts-node src/scripts/migrateUsername.ts"
+    "migrate:username": "ts-node src/scripts/migrateUsername.ts",
+    "seed:movies": "ts-node src/scripts/seedMovies.ts"
   },
   "keywords": [
     "nodejs",
