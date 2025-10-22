@@ -12,4 +12,6 @@ const favoriteSchema = new Schema<IFavorite>({
   createdAt: { type: Date, default: Date.now },
 });
 
+favoriteSchema.index({ userId: 1, movieId: 1 }, { unique: true });//esto evita duplicados
+
 export const Favorite = mongoose.model<IFavorite>('Favorite', favoriteSchema);
