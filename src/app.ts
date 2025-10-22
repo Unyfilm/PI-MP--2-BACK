@@ -11,6 +11,8 @@ import { config, validateConfig, isDevelopment } from './config/environment';
 import { connectDB } from './config/database';
 import userRoutes from './routes/userRoutes';
 import movieRoutes from './routes/movieRoutes';
+import favoriteRoutes from './routes/favoriteRoutes';///En prueba, julian
+import ratingRoutes from './routes/ratingRoutes';
 import { ApiResponse, HttpStatusCode } from './types/api.types';
 
 /**
@@ -20,9 +22,21 @@ const app: Application = express();
 
 /**
  * Configure CORS options
+ * Allow multiple frontends (production + development)
  */
+const allowedOrigins = [
+  config.clientUrl, // primary from env (e.g., https://pi-mp-2-front.vercel.app)
+  'http://localhost:5173',
+  'https://pi-mp-2-front.vercel.app',
+].filter(Boolean);
+
 const corsOptions = {
-  origin: config.clientUrl,
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow non-browser clients (e.g., Postman) with no Origin header
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
   credentials: true,
   optionsSuccessStatus: 200,
 };
@@ -60,6 +74,9 @@ app.get('/health', (req: Request, res: Response) => {
 app.use('/api/auth', userRoutes); // Authentication routes
 app.use('/api/users', userRoutes); // User routes
 app.use('/api/movies', movieRoutes); // Movie routes
+app.use('/api/favorites', favoriteRoutes); // Favorite routes
+
+app.use('/api/ratings', ratingRoutes); // Rating routes
 
 /**
  * Root endpoint
@@ -77,6 +94,8 @@ app.get('/', (req: Request, res: Response) => {
         auth: '/api/auth',
         users: '/api/users',
         movies: '/api/movies',
+        favorites: '/api/favorites',///En prueba, julian
+        ratings: '/api/ratings',
       },
     },
     timestamp: new Date().toISOString(),
