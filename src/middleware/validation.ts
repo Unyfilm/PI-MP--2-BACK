@@ -232,3 +232,72 @@ export const validateMovieUpdate = [
     
   handleValidationErrors,
 ];
+
+/**
+ * Rating creation and update validation rules
+ */
+export const validateRatingCreation = [
+  body('movieId')
+    .notEmpty()
+    .withMessage('Movie ID is required')
+    .isMongoId()
+    .withMessage('Movie ID must be a valid MongoDB ID'),
+    
+  body('rating')
+    .notEmpty()
+    .withMessage('Rating is required')
+    .isFloat({ min: 1, max: 5 })
+    .withMessage('Rating must be a number between 1 and 5')
+    .custom((value) => {
+      // Ensure rating is exactly 1, 2, 3, 4, or 5 (no decimals for star ratings)
+      if (![1, 2, 3, 4, 5].includes(value)) {
+        throw new Error('Rating must be exactly 1, 2, 3, 4, or 5 stars');
+      }
+      return true;
+    }),
+    
+  body('review')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Review must not exceed 1000 characters'),
+    
+  handleValidationErrors,
+];
+
+/**
+ * Rating query parameters validation rules
+ */
+export const validateRatingQuery = [
+  // For route parameters
+  body('movieId')
+    .optional()
+    .isMongoId()
+    .withMessage('Movie ID must be a valid MongoDB ID'),
+    
+  handleValidationErrors,
+];
+
+/**
+ * Rating update validation rules (for PUT endpoint)
+ */
+export const validateRatingUpdate = [
+  body('rating')
+    .optional()
+    .isFloat({ min: 1, max: 5 })
+    .withMessage('Rating must be a number between 1 and 5')
+    .custom((value) => {
+      if (value !== undefined && ![1, 2, 3, 4, 5].includes(value)) {
+        throw new Error('Rating must be exactly 1, 2, 3, 4, or 5 stars');
+      }
+      return true;
+    }),
+    
+  body('review')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Review must not exceed 1000 characters'),
+    
+  handleValidationErrors,
+];
