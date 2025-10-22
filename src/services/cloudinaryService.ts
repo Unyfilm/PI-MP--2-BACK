@@ -184,6 +184,3 @@ class CloudinaryServiceImpl implements CloudinaryService {
 
 // Export singleton instance
 export const cloudinaryService = new CloudinaryServiceImpl();
-
-// Export types
-export type { VideoOptions, UploadOptions, UploadResult, DeleteResult };
