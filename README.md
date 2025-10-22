@@ -6,6 +6,7 @@ Backend API for a movie streaming platform built with Node.js, Express, TypeScri
 
 ## 🛠 Technology Stack
 
+
 - **Runtime**: Node.js
 - **Framework**: Express.js
 - **Language**: TypeScript
