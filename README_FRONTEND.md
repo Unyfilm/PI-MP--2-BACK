@@ -11,7 +11,7 @@
 
 ## 🔗 **CONFIGURACIÓN DE CONEXIÓN**
 
-### **URLs Base por Entorno**
+### **URLs Base por Entorn**
 ```javascript
 // Frontend config
 const API_CONFIG = {
