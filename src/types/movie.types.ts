@@ -18,6 +18,7 @@ export interface IMovie extends Document {
   director: string;
   cast: string[];
   poster: string;
+  port: string;
   trailer: string;
   videoUrl: string;
   cloudinaryVideoId: string;
@@ -75,6 +76,7 @@ export interface CreateMovieRequest {
   director: string;
   cast: string[];
   poster: string;
+  port: string;
   trailer: string;
   videoUrl: string;
   cloudinaryVideoId: string;
