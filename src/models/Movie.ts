@@ -118,6 +118,10 @@ const movieSchema = new Schema<IMovie>({
     type: String,
     required: [true, 'Poster image URL is required'],
   },
+  port: {
+    type: String,
+    default: '',
+  },
   trailer: {
     type: String,
     default: '',
