@@ -9,11 +9,12 @@ import { Document } from 'mongoose';
  */
 export interface IUser extends Document {
   _id: string;
-  username: string;
+  username?: string;  // Made optional
   email: string;
   password: string;
   firstName: string;
   lastName: string;
+  age: number;
   profilePicture?: string;
   isActive: boolean;
   role: UserRole;
@@ -32,7 +33,12 @@ export interface IUser extends Document {
    * Virtual property for full name
    */
   fullName: string;
+  /**
+   * Virtual property for display name (username or full name)
+   */
+  displayName: string;
   comparePassword(candidatePassword: string): Promise<boolean>;
+  generateUsername(): Promise<string>;
 }
 
 /**
@@ -68,11 +74,12 @@ export enum VideoQuality {
  * User registration request interface
  */
 export interface RegisterUserRequest {
-  username: string;
+  username?: string; // Now optional
   email: string;
   password: string;
   firstName: string;
   lastName: string;
+  age: number;
 }
 
 /**
@@ -90,6 +97,7 @@ export interface UpdateUserRequest {
   username?: string;
   firstName?: string;
   lastName?: string;
+  age?: number;
   profilePicture?: string;
   preferences?: Partial<UserPreferences>;
 }

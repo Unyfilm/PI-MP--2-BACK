@@ -36,12 +36,14 @@ const userPreferencesSchema = new Schema<UserPreferences>({
 const userSchema = new Schema<IUser>({
   username: {
     type: String,
-    required: [true, 'Username is required'],
+    required: false, // Username is now optional
     unique: true,
+    sparse: true, // Allows multiple null/undefined values without unique constraint issues
     trim: true,
     minlength: [3, 'Username must be at least 3 characters long'],
     maxlength: [30, 'Username cannot exceed 30 characters'],
     match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'],
+    default: undefined, // Explicitly set to undefined when not provided
   },
   email: {
     type: String,
@@ -68,6 +70,16 @@ const userSchema = new Schema<IUser>({
     required: [true, 'Last name is required'],
     trim: true,
     maxlength: [50, 'Last name cannot exceed 50 characters'],
+  },
+  age: {
+    type: Number,
+    required: [true, 'Age is required'],
+    min: [13, 'Age must be at least 13 years old'],
+    max: [120, 'Age cannot exceed 120 years'],
+    validate: {
+      validator: Number.isInteger,
+      message: 'Age must be a whole number',
+    },
   },
   profilePicture: {
     type: String,
@@ -134,6 +146,33 @@ userSchema.methods.comparePassword = async function(candidatePassword: string): 
   }
   return bcrypt.compare(candidatePassword, this.password);
 };
+
+/**
+ * Generate unique username based on first name and last name
+ */
+userSchema.methods.generateUsername = async function(): Promise<string> {
+  const baseUsername = `${this.firstName}${this.lastName}`.toLowerCase()
+    .replace(/[^a-z0-9]/g, '') // Remove special characters
+    .substring(0, 20); // Limit length
+  
+  let username = baseUsername;
+  let counter = 1;
+  
+  // Check if username exists and increment until unique
+  while (await User.findOne({ username, _id: { $ne: this._id } })) {
+    username = `${baseUsername}${counter}`;
+    counter++;
+  }
+  
+  return username;
+};
+
+/**
+ * Get display name (username or full name)
+ */
+userSchema.virtual('displayName').get(function(this: any) {
+  return this.username || this.fullName;
+});
 
 /**
  * Get full name virtual

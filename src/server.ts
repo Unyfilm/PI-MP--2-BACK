@@ -1,48 +1,65 @@
 /**
- * Entry point for the backend server.
- * Connects to the database and starts the Express application.
+ * Production-ready server entry point
+ * Handles graceful startup, shutdown, and environment-specific optimizations
  */
 
 import app from './app';
-import { connectDB } from './config/database';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import { connectDB, setupGracefulShutdown } from './config/database';
+import { validateConfig, config, logConfig, isProduction } from './config/environment';
 
 /**
- * Start the server with database connection
+ * Start the server with comprehensive error handling
  */
 const startServer = async (): Promise<void> => {
   try {
-    // Connect to MongoDB
+    // Validate configuration before starting
+    validateConfig();
+    
+    // Log safe configuration details
+    logConfig();
+    
+    // Connect to database (skipped in test environment)
     await connectDB();
     
+    // Setup graceful shutdown handlers
+    setupGracefulShutdown();
+    
     // Start Express server
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    const server = app.listen(config.port, () => {
+      console.log(`🚀 Server running on port ${config.port}`);
       
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`📡 Health check: http://localhost:${PORT}/health`);
-        console.log(`🎬 API docs: http://localhost:${PORT}/`);
+      if (!isProduction()) {
+        console.log(`📡 Health check: http://localhost:${config.port}/health`);
+        console.log(`🎬 API docs: http://localhost:${config.port}/`);
       }
     });
-  } catch (error) {
-    console.error('❌ Failed to start server:', error);
+
+    // Handle server errors
+    server.on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${config.port} is already in use`);
+        process.exit(1);
+      } else {
+        console.error('❌ Server error:', error);
+        process.exit(1);
+      }
+    });
+
+  } catch (error: any) {
+    console.error('❌ Failed to start server:', error.message);
     process.exit(1);
   }
 };
 
-// Handle process termination gracefully
-process.on('SIGTERM', () => {
-  console.log('🛑 SIGTERM received, shutting down gracefully...');
-  process.exit(0);
+// Handle uncaught exceptions and rejections
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
 });
 
-process.on('SIGINT', () => {
-  console.log('🛑 SIGINT received, shutting down gracefully...');
-  process.exit(0);
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 });
 
 // Start the server

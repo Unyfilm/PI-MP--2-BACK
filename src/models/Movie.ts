@@ -126,6 +126,11 @@ const movieSchema = new Schema<IMovie>({
     type: String,
     required: [true, 'Video URL is required'],
   },
+  cloudinaryVideoId: {
+    type: String,
+    required: [true, 'Cloudinary video ID is required'],
+    trim: true,
+  },
   thumbnails: [{
     type: String,
   }],

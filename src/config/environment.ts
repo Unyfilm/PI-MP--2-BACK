@@ -1,18 +1,25 @@
 /**
  * Environment configuration management
- * Handles all environment variables and configuration settings
+ * Handles all environment variables and configuration settings for multiple environments
  */
 
 import dotenv from 'dotenv';
 
-dotenv.config();
+// Load environment variables based on NODE_ENV
+const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
+dotenv.config({ path: envFile });
+
+/**
+ * Environment types
+ */
+export type Environment = 'development' | 'production' | 'test' | 'staging';
 
 /**
  * Application configuration interface
  */
 export interface AppConfig {
   port: number;
-  nodeEnv: string;
+  nodeEnv: Environment;
   mongodbUri: string;
   jwtSecret: string;
   jwtExpiresIn: string;
@@ -28,14 +35,55 @@ export interface AppConfig {
     user: string;
     pass: string;
   };
+  // Production-specific configurations
+  trustProxy: boolean;
+  rateLimitWindow: number;
+  rateLimitMax: number;
 }
+
+/**
+ * Get current environment
+ */
+const getCurrentEnvironment = (): Environment => {
+  const env = process.env.NODE_ENV || 'development';
+  const validEnvs: Environment[] = ['development', 'production', 'test', 'staging'];
+  return validEnvs.includes(env as Environment) ? env as Environment : 'development';
+};
+
+/**
+ * Environment check functions (defined early to avoid hoisting issues)
+ */
+const currentEnv = getCurrentEnvironment();
+export const isProduction = (): boolean => currentEnv === 'production';
+export const isDevelopment = (): boolean => currentEnv === 'development';
+export const isTest = (): boolean => currentEnv === 'test';
+export const isStaging = (): boolean => currentEnv === 'staging';
+
+/**
+ * Get database configuration based on environment
+ */
+export const getDatabaseConfig = () => {
+  if (isTest()) {
+    // Tests use MongoDB Memory Server - no real connection needed
+    return null;
+  }
+  
+  return {
+    uri: config.mongodbUri,
+    options: {
+      maxPoolSize: isProduction() ? 10 : 5,
+      serverSelectionTimeoutMS: isProduction() ? 30000 : 5000,
+      socketTimeoutMS: isProduction() ? 45000 : 0,
+    },
+  };
+};
 
 /**
  * Application configuration object
  */
 export const config: AppConfig = {
   port: parseInt(process.env.PORT || '5000', 10),
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv: currentEnv,
   mongodbUri: process.env.MONGODB_URI || '',
   jwtSecret: process.env.JWT_SECRET || '',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
@@ -51,34 +99,70 @@ export const config: AppConfig = {
     user: process.env.EMAIL_USER || '',
     pass: process.env.EMAIL_PASS || '',
   },
+  // Production optimizations
+  trustProxy: isProduction(),
+  rateLimitWindow: parseInt(process.env.RATE_LIMIT_WINDOW || '900000', 10), // 15 minutes
+  rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '100', 10),
 };
 
 /**
- * Validates required environment variables
+ * Environment-specific required variables
+ */
+const getRequiredVars = (env: Environment): string[] => {
+  const base = ['MONGODB_URI', 'JWT_SECRET'];
+  
+  switch (env) {
+    case 'production':
+      return [...base, 'CLIENT_URL'];
+    case 'test':
+      return ['JWT_SECRET']; // Tests use MongoDB Memory Server
+    default:
+      return base;
+  }
+};
+
+/**
+ * Validates required environment variables based on current environment
  * @throws Error if required variables are missing
  */
 export const validateConfig = (): void => {
-  const requiredVars = ['MONGODB_URI', 'JWT_SECRET'];
+  const requiredVars = getRequiredVars(config.nodeEnv);
+  const missing: string[] = [];
   
   for (const varName of requiredVars) {
     if (!process.env[varName]) {
-      throw new Error(`Missing required environment variable: ${varName}`);
+      missing.push(varName);
+    }
+  }
+  
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required environment variables for ${config.nodeEnv}: ${missing.join(', ')}`
+    );
+  }
+  
+  // Production-specific validations
+  if (isProduction()) {
+    if (config.jwtSecret.length < 32) {
+      throw new Error('JWT_SECRET must be at least 32 characters in production');
+    }
+    
+    if (!config.clientUrl.startsWith('https://')) {
+      console.warn('⚠️ CLIENT_URL should use HTTPS in production');
     }
   }
 };
 
 /**
- * Checks if application is in production mode
- * @returns boolean
+ * Log configuration (safe for production)
  */
-export const isProduction = (): boolean => {
-  return config.nodeEnv === 'production';
-};
-
-/**
- * Checks if application is in development mode
- * @returns boolean
- */
-export const isDevelopment = (): boolean => {
-  return config.nodeEnv === 'development';
+export const logConfig = (): void => {
+  console.log(`🌍 Environment: ${config.nodeEnv}`);
+  console.log(`🚀 Port: ${config.port}`);
+  console.log(`🔗 Client URL: ${config.clientUrl}`);
+  
+  if (!isProduction()) {
+    console.log(`📊 Database: ${config.mongodbUri ? '✅ Configured' : '❌ Missing'}`);
+    console.log(`🔑 JWT Secret: ${config.jwtSecret ? '✅ Configured' : '❌ Missing'}`);
+  }
 };

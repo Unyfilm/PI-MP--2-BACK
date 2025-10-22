@@ -35,6 +35,7 @@ export const handleValidationErrors = (
  */
 export const validateUserRegistration = [
   body('username')
+    .optional() // Username is now optional
     .isLength({ min: 3, max: 30 })
     .withMessage('Username must be between 3 and 30 characters')
     .matches(/^[a-zA-Z0-9_]+$/)
@@ -60,6 +61,10 @@ export const validateUserRegistration = [
     .trim()
     .isLength({ min: 1, max: 50 })
     .withMessage('Last name must be between 1 and 50 characters'),
+    
+  body('age')
+    .isInt({ min: 13, max: 120 })
+    .withMessage('Age must be a number between 13 and 120'),
     
   handleValidationErrors,
 ];
@@ -102,6 +107,11 @@ export const validateUserUpdate = [
     .trim()
     .isLength({ min: 1, max: 50 })
     .withMessage('Last name must be between 1 and 50 characters'),
+    
+  body('age')
+    .optional()
+    .isInt({ min: 13, max: 120 })
+    .withMessage('Age must be a number between 13 and 120'),
     
   body('profilePicture')
     .optional()

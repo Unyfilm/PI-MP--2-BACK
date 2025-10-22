@@ -32,13 +32,13 @@ import { config } from '../config/environment';
 export const registerUser = async (req: Request, res: Response): Promise<void> => {
   try {
     // Accept confirmPassword from body
-    const { username, email, password, confirmPassword, firstName, lastName } = req.body;
+    const { username, email, password, confirmPassword, firstName, lastName, age } = req.body;
 
-    // Validate input
-    if (!username || !email || !password || !confirmPassword || !firstName || !lastName) {
+    // Validate input (username is now optional)
+    if (!email || !password || !confirmPassword || !firstName || !lastName || !age) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
-        message: 'Todos los campos son requeridos',
+        message: 'Email, contraseña, nombre, apellido y edad son requeridos',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
@@ -75,15 +75,36 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     }
 
     // Check if user already exists
+    const existingConditions: any[] = [{ email }];
+    if (username) {
+      existingConditions.push({ username });
+    }
+    
     const existingUser = await User.findOne({
-      $or: [{ email }, { username }],
+      $or: existingConditions,
     });
 
     if (existingUser) {
-      const field = existingUser.email === email ? 'correo electrónico' : 'nombre de usuario';
+      let message = 'Este correo electrónico ya está registrado';
+      if (existingUser.email === email) {
+        message = 'Este correo electrónico ya está registrado. Por favor usa uno diferente.';
+      } else if (username && existingUser.username === username) {
+        message = 'Este nombre de usuario ya está en uso. Por favor usa uno diferente.';
+      }
+      
       res.status(HttpStatusCode.CONFLICT).json({
         success: false,
-        message: `Este ${field} ya está registrado. Por favor usa uno diferente.`,
+        message,
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+
+    // Validate age
+    if (typeof age !== 'number' || age < 13 || age > 120 || !Number.isInteger(age)) {
+      res.status(HttpStatusCode.BAD_REQUEST).json({
+        success: false,
+        message: 'La edad debe ser un número entero entre 13 y 120 años',
         timestamp: new Date().toISOString(),
       } as ApiResponse);
       return;
@@ -91,12 +112,18 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
 
     // Create new user
     const user = new User({
-      username,
+      username: username || undefined, // Explicitly set to undefined if not provided
       email,
       password,
       firstName,
       lastName,
+      age,
     });
+
+    // Generate username if not provided
+    if (!username) {
+      user.username = await user.generateUsername();
+    }
 
     await user.save();
 
@@ -111,6 +138,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          age: user.age,
           role: user.role,
         },
       },
@@ -182,6 +210,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          age: user.age,
           role: user.role,
           preferences: user.preferences,
         },
@@ -242,6 +271,7 @@ export const getUserProfile = async (req: AuthenticatedRequest, res: Response): 
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        age: user.age,
         fullName: user.fullName,
         profilePicture: user.profilePicture,
         role: user.role,
@@ -296,7 +326,7 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
     }
 
     // Define allowed fields for profile update
-    const allowedFields = ['username', 'firstName', 'lastName', 'email', 'profilePicture', 'preferences'];
+    const allowedFields = ['username', 'firstName', 'lastName', 'age', 'email', 'profilePicture', 'preferences'];
     const filteredUpdateData: any = {};
 
     // Filter and validate each field
@@ -387,6 +417,17 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
           }
         }
 
+        if (key === 'age' && value) {
+          if (typeof value !== 'number' || value < 13 || value > 120 || !Number.isInteger(value)) {
+            res.status(HttpStatusCode.BAD_REQUEST).json({
+              success: false,
+              message: 'La edad debe ser un número entero entre 13 y 120 años',
+              timestamp: new Date().toISOString(),
+            } as ApiResponse);
+            return;
+          }
+        }
+
         filteredUpdateData[key] = value;
       }
     }
@@ -432,6 +473,7 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
         email: updatedUser.email,
         firstName: updatedUser.firstName,
         lastName: updatedUser.lastName,
+        age: updatedUser.age,
         fullName: updatedUser.fullName,
         profilePicture: updatedUser.profilePicture,
         preferences: updatedUser.preferences,
@@ -572,7 +614,7 @@ export const changeUserPassword = async (req: AuthenticatedRequest, res: Respons
     // Update password (will be hashed by pre-save middleware)
     user.password = newPassword;
     user.updatedAt = new Date();
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
 
     res.status(HttpStatusCode.OK).json({
       success: true,
@@ -783,7 +825,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       // Save token to user document
       user.resetPasswordToken = resetToken;
       user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-      await user.save();
+      await user.save({ validateModifiedOnly: true });
 
       // Send reset email
       const resetLink = `${config.clientUrl}/reset-password?token=${resetToken}`;
@@ -897,7 +939,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     user.password = password; // Will be hashed by pre-save hook
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
 
     res.status(HttpStatusCode.OK).json({
       success: true,

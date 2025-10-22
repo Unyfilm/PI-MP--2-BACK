@@ -1,8 +1,9 @@
 /**
- * Email service for sending notifications
+ * Email service for sending notifications with SendGrid API and Nodemailer fallback
  */
 
 import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 import { config } from '../config/environment';
 
 /**
@@ -16,37 +17,132 @@ interface EmailOptions {
 }
 
 /**
- * Create email transporter
+ * Create email transporter with support for multiple services
  */
 const createTransporter = () => {
-  return nodemailer.createTransport({
-    service: 'gmail',
+  // Check for SendGrid configuration
+  const sendgridApiKey = process.env.SENDGRID_API_KEY;
+  const emailService = process.env.EMAIL_SERVICE || config.email.service;
+  
+  if (emailService === 'SendGrid' && sendgridApiKey) {
+    // SendGrid configuration
+    return nodemailer.createTransport({
+      service: 'SendGrid',
+      auth: {
+        user: 'apikey',
+        pass: sendgridApiKey,
+      },
+    });
+  }
+
+  // Gmail configuration (fallback)
+  const transportConfig = {
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // true for 465, false for other ports
     auth: {
       user: config.email.user,
       pass: config.email.pass, // App password, not regular password
     },
-  });
+    // Production-specific settings for Render
+    tls: {
+      rejectUnauthorized: false,
+      ciphers: 'SSLv3'
+    },
+    connectionTimeout: 60000, // 60s
+    greetingTimeout: 30000,    // 30s
+    socketTimeout: 60000,      // 60s
+  };
+
+  return nodemailer.createTransport(transportConfig);
 };
 
 /**
- * Send email function
+ * Send email using SendGrid API (preferred) or Nodemailer fallback
  * @param {EmailOptions} options - Email options
  * @returns {Promise<boolean>} Success status
  */
 export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
   try {
-    // Check if email service is configured
-    if (!config.email.user || !config.email.pass) {
-      console.log(`[EMAIL SIMULATION] Would send email to: ${options.to}`);
-      console.log(`Subject: ${options.subject}`);
-      console.log(`Content: ${options.text || options.html}`);
+    const sendgridApiKey = process.env.SENDGRID_API_KEY;
+    const emailService = process.env.EMAIL_SERVICE || config.email.service;
+    const hasGmailConfig = config.email.user && config.email.pass;
+    const hasSendGridConfig = emailService === 'SendGrid' && sendgridApiKey;
+    
+    if (!hasGmailConfig && !hasSendGridConfig) {
+      console.log(`📧 [EMAIL SIMULATION] Would send email to: ${options.to}`);
+      console.log(`📧 Subject: ${options.subject}`);
+      console.log(`📧 Content: ${options.text || options.html}`);
       return true;
     }
 
+    // PRIORITY 1: Use SendGrid API (HTTP - no blocked ports)
+    if (hasSendGridConfig) {
+      return await sendEmailWithSendGrid(options, sendgridApiKey!);
+    }
+
+    // PRIORITY 2: Fallback to Gmail SMTP
+    if (hasGmailConfig) {
+      return await sendEmailWithNodemailer(options);
+    }
+
+    return false;
+
+  } catch (error: any) {
+    console.error('❌ Email service failed:', error.message);
+    return false;
+  }
+};
+
+/**
+ * Send email using SendGrid API (HTTP - production ready)
+ */
+const sendEmailWithSendGrid = async (options: EmailOptions, apiKey: string): Promise<boolean> => {
+  try {
+    sgMail.setApiKey(apiKey);
+    
+    const senderEmail = process.env.EMAIL_FROM || config.email.user;
+    
+    // Use the simplest format that always works
+    const msg = {
+      to: options.to,
+      from: senderEmail,
+      subject: options.subject,
+      text: options.text || '',
+      html: options.html || options.text || '',
+    };
+
+    console.log(`📤 Sending email via SendGrid API to: ${options.to}`);
+    const result = await sgMail.send(msg);
+    
+    console.log(`✅ Email sent successfully via SendGrid to ${options.to}`);
+    console.log(`📧 SendGrid Response Status: ${result[0].statusCode}`);
+    return true;
+
+  } catch (error: any) {
+    console.error('❌ SendGrid API failed:', error.message);
+    if (error.response) {
+      console.error('🔧 SendGrid Error Details:', error.response.body);
+    }
+    throw error;
+  }
+};
+
+/**
+ * Send email using Nodemailer (Gmail SMTP fallback)
+ */
+const sendEmailWithNodemailer = async (options: EmailOptions): Promise<boolean> => {
+  try {
+    console.log(`📤 Sending email via Gmail SMTP to: ${options.to}`);
     const transporter = createTransporter();
     
+    // Verify transporter configuration
+    await transporter.verify();
+    console.log('📡 Gmail SMTP transporter verified successfully');
+    
+    const senderEmail = process.env.EMAIL_FROM || config.email.user;
     const mailOptions = {
-      from: `"Movie Platform" <${config.email.user}>`,
+      from: `"Movie Platform" <${senderEmail}>`,
       to: options.to,
       subject: options.subject,
       text: options.text,
@@ -54,12 +150,17 @@ export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
     };
 
     const result = await transporter.sendMail(mailOptions);
-    console.log(`✅ Email sent successfully to ${options.to}. MessageId: ${result.messageId}`);
+    console.log(`✅ Email sent successfully via Gmail SMTP to ${options.to}. MessageId: ${result.messageId}`);
     return true;
 
-  } catch (error) {
-    console.error('❌ Email sending failed:', error);
-    return false;
+  } catch (error: any) {
+    console.error('❌ Gmail SMTP failed:', error.message);
+    console.error('🔧 SMTP Error Details:', {
+      code: error.code,
+      command: error.command,
+      response: error.response
+    });
+    throw error;
   }
 };
 

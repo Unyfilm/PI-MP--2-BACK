@@ -2,7 +2,7 @@
  * Common API response interfaces and types
  */
 
-import { Request } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { IUser } from './user.types';
 
 /**
@@ -57,7 +57,7 @@ export interface JwtPayload {
 }
 
 /**
- * Authenticated request interface
+ * Authenticated request interface with all Express Request properties
  */
 export interface AuthenticatedRequest extends Request {
   user?: IUser;
