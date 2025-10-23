@@ -10,7 +10,9 @@ import {
   getTrendingMovies, 
   createMovie, 
   updateMovie, 
-  deleteMovie 
+  deleteMovie,
+  getMovieVideo,
+  getMovieVideoInfo
 } from '../controllers/movieController';
 import { authenticateToken, requireAdmin } from '../middleware/auth';
 import { validateMovieCreation, validateMovieUpdate } from '../middleware/validation';
@@ -44,6 +46,20 @@ router.get('/trending', getTrendingMovies);
  * @access  Public
  */
 router.get('/:id', getMovieById);
+
+/**
+ * @route   GET /api/movies/:id/video
+ * @desc    Get movie video URL (signed URL from Cloudinary)
+ * @access  Public
+ */
+router.get('/:id/video', getMovieVideo);
+
+/**
+ * @route   GET /api/movies/:id/video/info
+ * @desc    Get movie video info (duration, dimensions, etc.)
+ * @access  Public
+ */
+router.get('/:id/video/info', getMovieVideoInfo);
 
 /**
  * @route   POST /api/movies

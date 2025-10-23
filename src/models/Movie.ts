@@ -118,6 +118,10 @@ const movieSchema = new Schema<IMovie>({
     type: String,
     required: [true, 'Poster image URL is required'],
   },
+  port: {
+    type: String,
+    default: '',
+  },
   trailer: {
     type: String,
     default: '',
@@ -125,6 +129,11 @@ const movieSchema = new Schema<IMovie>({
   videoUrl: {
     type: String,
     required: [true, 'Video URL is required'],
+  },
+  cloudinaryVideoId: {
+    type: String,
+    required: [true, 'Cloudinary video ID is required'],
+    trim: true,
   },
   thumbnails: [{
     type: String,

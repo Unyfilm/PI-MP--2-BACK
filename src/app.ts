@@ -11,6 +11,8 @@ import { config, validateConfig, isDevelopment } from './config/environment';
 import { connectDB } from './config/database';
 import userRoutes from './routes/userRoutes';
 import movieRoutes from './routes/movieRoutes';
+import favoriteRoutes from './routes/favoriteRoutes';///En prueba, julian
+import ratingRoutes from './routes/ratingRoutes';
 import { ApiResponse, HttpStatusCode } from './types/api.types';
 
 /**
@@ -72,6 +74,9 @@ app.get('/health', (req: Request, res: Response) => {
 app.use('/api/auth', userRoutes); // Authentication routes
 app.use('/api/users', userRoutes); // User routes
 app.use('/api/movies', movieRoutes); // Movie routes
+app.use('/api/favorites', favoriteRoutes); // Favorite routes
+
+app.use('/api/ratings', ratingRoutes); // Rating routes
 
 /**
  * Root endpoint
@@ -89,6 +94,8 @@ app.get('/', (req: Request, res: Response) => {
         auth: '/api/auth',
         users: '/api/users',
         movies: '/api/movies',
+        favorites: '/api/favorites',///En prueba, julian
+        ratings: '/api/ratings',
       },
     },
     timestamp: new Date().toISOString(),

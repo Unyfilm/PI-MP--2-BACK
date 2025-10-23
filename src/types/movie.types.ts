@@ -18,8 +18,10 @@ export interface IMovie extends Document {
   director: string;
   cast: string[];
   poster: string;
+  port: string;
   trailer: string;
   videoUrl: string;
+  cloudinaryVideoId: string;
   thumbnails: string[];
   rating: MovieRating;
   language: string;
@@ -74,8 +76,10 @@ export interface CreateMovieRequest {
   director: string;
   cast: string[];
   poster: string;
+  port: string;
   trailer: string;
   videoUrl: string;
+  cloudinaryVideoId: string;
   language: string;
   tags: string[];
 }
@@ -95,6 +99,7 @@ export interface UpdateMovieRequest {
   poster?: string;
   trailer?: string;
   videoUrl?: string;
+  cloudinaryVideoId?: string;
   language?: string;
   tags?: string[];
   isActive?: boolean;
