@@ -92,13 +92,14 @@ export const createOrUpdateRating = async (req: AuthenticatedRequest, res: Respo
       return;
     }
 
-    // Try to find existing rating
-    let existingRating = await Rating.findOne({ userId, movieId, isActive: true });
+    // Try to find existing rating (active or inactive)
+    let existingRating = await Rating.findOne({ userId, movieId });
 
     if (existingRating) {
-      // Update existing rating
+      // Update existing rating (reactivate if it was soft deleted)
       existingRating.rating = rating;
       existingRating.review = review || '';
+      existingRating.isActive = true; // Reactivate if it was soft deleted
       existingRating.updatedAt = new Date();
       await existingRating.save();
 
@@ -130,6 +131,7 @@ export const createOrUpdateRating = async (req: AuthenticatedRequest, res: Respo
         movieId,
         rating,
         review: review || '',
+        isActive: true, // Explicitly set as active
       });
 
       await newRating.save();
@@ -156,8 +158,20 @@ export const createOrUpdateRating = async (req: AuthenticatedRequest, res: Respo
         timestamp: new Date().toISOString(),
       } as ApiResponse);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Create/Update rating error:', error);
+    
+    // Handle duplicate key error specifically
+    if (error.code === 11000 && error.keyPattern?.userId && error.keyPattern?.movieId) {
+      res.status(HttpStatusCode.CONFLICT).json({
+        success: false,
+        message: 'Ya existe una calificación para esta película',
+        error: 'Conflicto de duplicado: Ya has calificado esta película',
+        timestamp: new Date().toISOString(),
+      } as ApiResponse);
+      return;
+    }
+    
     res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: 'Error interno del servidor',

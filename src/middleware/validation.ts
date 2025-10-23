@@ -301,3 +301,51 @@ export const validateRatingUpdate = [
     
   handleValidationErrors,
 ];
+
+/**
+ * Favorite creation validation rules
+ */
+export const validateFavoriteCreation = [
+  body('userId')
+    .notEmpty()
+    .withMessage('User ID is required')
+    .isMongoId()
+    .withMessage('User ID must be a valid MongoDB ObjectId'),
+    
+  body('movieId')
+    .notEmpty()
+    .withMessage('Movie ID is required')
+    .isMongoId()
+    .withMessage('Movie ID must be a valid MongoDB ObjectId'),
+    
+  body('notes')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Notes cannot exceed 500 characters'),
+    
+  body('rating')
+    .optional()
+    .isInt({ min: 1, max: 5 })
+    .withMessage('Rating must be an integer between 1 and 5'),
+    
+  handleValidationErrors,
+];
+
+/**
+ * Favorite update validation rules
+ */
+export const validateFavoriteUpdate = [
+  body('notes')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Notes cannot exceed 500 characters'),
+    
+  body('rating')
+    .optional()
+    .isInt({ min: 1, max: 5 })
+    .withMessage('Rating must be an integer between 1 and 5'),
+    
+  handleValidationErrors,
+];
