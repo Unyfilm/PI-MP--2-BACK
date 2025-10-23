@@ -696,6 +696,50 @@ POST http://localhost:5000/api/auth/login
 
 ---
 
+### **🔧 CASOS DE ERROR COMUNES EN CALIFICACIONES**
+
+#### **Error 409: Duplicate Rating (YA SOLUCIONADO)**
+**Situación anterior:** Al eliminar una calificación y después intentar crear una nueva para la misma película, se obtenía:
+```
+E11000 duplicate key error collection: movieapp_prod.ratings index: userId_1_movieId_1 dup key
+```
+
+**Solución implementada:** El sistema ahora detecta automáticamente calificaciones eliminadas (soft delete) y las reactiva en lugar de crear nuevas. El flujo correcto es:
+
+1. **Eliminar calificación:** `DELETE /api/ratings/movie/{{movie_id}}` → Marca `isActive=false`
+2. **Crear nueva calificación:** `POST /api/ratings/` → Si encuentra una calificación inactiva, la reactiva y actualiza
+3. **Resultado:** Sin errores de duplicado, funcionamiento fluido
+
+#### **Test Case: Flujo Delete → Create**
+1. **Crear calificación inicial:**
+```json
+POST /api/ratings/
+{
+  "movieId": "671234567890abcdef123456",
+  "rating": 5,
+  "review": "Excelente película"
+}
+```
+
+2. **Eliminar calificación:**
+```json
+DELETE /api/ratings/movie/671234567890abcdef123456
+```
+
+3. **Crear nueva calificación (debe funcionar sin errores):**
+```json
+POST /api/ratings/
+{
+  "movieId": "671234567890abcdef123456",
+  "rating": 4,
+  "review": "En segunda vista me gustó un poco menos"
+}
+```
+
+**Respuesta esperada:** `200 OK` con mensaje "Rating updated successfully"
+
+---
+
 ## ⭐ **3. ENDPOINTS DE CALIFICACIONES (ratingRoutes.ts)**
 
 ### **POST /api/ratings - Crear o actualizar calificación**
@@ -975,13 +1019,27 @@ POST http://localhost:5000/api/auth/login
 7. **Acceder a película inexistente** → Error 404
 8. **Eliminar calificación que no existe** → Error 404
 
-### **Test Case 4: Permisos y roles**
+### **Test Case 6: Verificación del fix de duplicate rating**
+1. **Setup inicial:** Login de usuario → Obtener token
+2. **Crear calificación:** `POST /api/ratings` → Verificar success=true
+3. **Eliminar calificación:** `DELETE /api/ratings/movie/{movieId}` → Verificar success=true
+4. **Crear nueva calificación:** `POST /api/ratings` con el mismo movieId → **DEBE FUNCIONAR** sin error 409
+5. **Verificar resultado:** Response debe ser `200 OK` con "Rating updated successfully"
+6. **Validar estado:** `GET /api/ratings/movie/{movieId}/user` → Debe mostrar la nueva calificación
+
+**Comportamiento correcto esperado:**
+- ✅ Sin errores de MongoDB duplicate key
+- ✅ Sin errores E11000 
+- ✅ Calificación se crea/actualiza correctamente
+- ✅ Sistema reactiva automáticamente registros soft-deleted
+
+### **Test Case 7: Permisos y roles**
 1. **Admin puede:** Crear, editar, eliminar películas; ver todos los favoritos del sistema (`GET /api/favorites`)
 2. **Usuario puede:** Ver SUS favoritos (`GET /api/favorites/me`), un favorito específico (`GET /api/favorites/me/:id`), calificar, gestionar solo sus favoritos
 3. **Usuario NO puede:** Crear/editar películas, ver favoritos de otros usuarios sin ser admin, acceder a `GET /api/favorites` (lista completa)
 4. **Sin autenticación:** Solo ver películas públicas
 
-### **Test Case 5: Paginación y filtros**
+### **Test Case 8: Paginación y filtros**
 1. **Listar películas con paginación:** `?page=2&limit=5`
 2. **Filtrar por género:** `?genre=Action`
 3. **Favoritos con filtros de fecha:** `?fromDate=2024-01-01&toDate=2024-12-31`
