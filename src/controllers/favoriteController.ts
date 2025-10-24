@@ -91,20 +91,47 @@ export const addFavorite = async (req: AuthenticatedRequest, res: Response): Pro
       return;
     }
 
-    // Check if favorite already exists
+    // Check if favorite already exists (active or inactive)
     const existingFavorite = await Favorite.findOne({ 
       userId, 
-      movieId, 
-      isActive: true 
+      movieId
+      // Remove isActive: true to find both active and inactive favorites
     });
 
     if (existingFavorite) {
-      res.status(HttpStatusCode.CONFLICT).json({
-        success: false,
-        message: 'Ya en favoritos',
-        timestamp: new Date().toISOString(),
-      } as ApiResponse);
-      return;
+      if (existingFavorite.isActive) {
+        // Already active, return 409
+        res.status(HttpStatusCode.CONFLICT).json({
+          success: false,
+          message: 'Ya en favoritos',
+          timestamp: new Date().toISOString(),
+        } as ApiResponse);
+        return;
+      } else {
+        // Inactive favorite found, delete it and create a new one
+        await Favorite.findByIdAndDelete(existingFavorite._id);
+
+        // Create new favorite
+        const newFavorite = new Favorite({
+          userId,
+          movieId,
+          notes: notes || '',
+          rating: rating || undefined,
+        });
+
+        await newFavorite.save();
+
+        // Populate movie details for response
+        await newFavorite.populate('movieId', 'title poster genre director duration releaseDate');
+
+        res.status(HttpStatusCode.CREATED).json({
+          success: true,
+          message: 'Favorito agregado',
+          data: newFavorite,
+          timestamp: new Date().toISOString(),
+        } as ApiResponse);
+        return;
+      }
     }
 
     // Create new favorite
@@ -456,16 +483,16 @@ export const deleteFavorite = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // Soft delete: mark as inactive
-    favorite.isActive = false;
-    await favorite.save();
+    // Hard delete: remove from database completely
+    const movieTitle = (favorite.movieId as any)?.title || 'Unknown Movie';
+    await Favorite.findByIdAndDelete(id);
 
     res.status(HttpStatusCode.OK).json({
       success: true,
       message: 'Eliminado de favoritos',
       data: {
-        deletedFavoriteId: favorite._id,
-        movieTitle: (favorite.movieId as any)?.title || 'Unknown Movie'
+        deletedFavoriteId: id,
+        movieTitle: movieTitle
       },
       timestamp: new Date().toISOString(),
     } as ApiResponse);
