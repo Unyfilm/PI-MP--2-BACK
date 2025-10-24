@@ -696,50 +696,6 @@ POST http://localhost:5000/api/auth/login
 
 ---
 
-### **🔧 CASOS DE ERROR COMUNES EN CALIFICACIONES**
-
-#### **Error 409: Duplicate Rating (YA SOLUCIONADO)**
-**Situación anterior:** Al eliminar una calificación y después intentar crear una nueva para la misma película, se obtenía:
-```
-E11000 duplicate key error collection: movieapp_prod.ratings index: userId_1_movieId_1 dup key
-```
-
-**Solución implementada:** El sistema ahora detecta automáticamente calificaciones eliminadas (soft delete) y las reactiva en lugar de crear nuevas. El flujo correcto es:
-
-1. **Eliminar calificación:** `DELETE /api/ratings/movie/{{movie_id}}` → Marca `isActive=false`
-2. **Crear nueva calificación:** `POST /api/ratings/` → Si encuentra una calificación inactiva, la reactiva y actualiza
-3. **Resultado:** Sin errores de duplicado, funcionamiento fluido
-
-#### **Test Case: Flujo Delete → Create**
-1. **Crear calificación inicial:**
-```json
-POST /api/ratings/
-{
-  "movieId": "671234567890abcdef123456",
-  "rating": 5,
-  "review": "Excelente película"
-}
-```
-
-2. **Eliminar calificación:**
-```json
-DELETE /api/ratings/movie/671234567890abcdef123456
-```
-
-3. **Crear nueva calificación (debe funcionar sin errores):**
-```json
-POST /api/ratings/
-{
-  "movieId": "671234567890abcdef123456",
-  "rating": 4,
-  "review": "En segunda vista me gustó un poco menos"
-}
-```
-
-**Respuesta esperada:** `200 OK` con mensaje "Rating updated successfully"
-
----
-
 ## ⭐ **3. ENDPOINTS DE CALIFICACIONES (ratingRoutes.ts)**
 
 ### **POST /api/ratings - Crear o actualizar calificación**
@@ -1019,27 +975,13 @@ POST /api/ratings/
 7. **Acceder a película inexistente** → Error 404
 8. **Eliminar calificación que no existe** → Error 404
 
-### **Test Case 6: Verificación del fix de duplicate rating**
-1. **Setup inicial:** Login de usuario → Obtener token
-2. **Crear calificación:** `POST /api/ratings` → Verificar success=true
-3. **Eliminar calificación:** `DELETE /api/ratings/movie/{movieId}` → Verificar success=true
-4. **Crear nueva calificación:** `POST /api/ratings` con el mismo movieId → **DEBE FUNCIONAR** sin error 409
-5. **Verificar resultado:** Response debe ser `200 OK` con "Rating updated successfully"
-6. **Validar estado:** `GET /api/ratings/movie/{movieId}/user` → Debe mostrar la nueva calificación
-
-**Comportamiento correcto esperado:**
-- ✅ Sin errores de MongoDB duplicate key
-- ✅ Sin errores E11000 
-- ✅ Calificación se crea/actualiza correctamente
-- ✅ Sistema reactiva automáticamente registros soft-deleted
-
-### **Test Case 7: Permisos y roles**
+### **Test Case 4: Permisos y roles**
 1. **Admin puede:** Crear, editar, eliminar películas; ver todos los favoritos del sistema (`GET /api/favorites`)
 2. **Usuario puede:** Ver SUS favoritos (`GET /api/favorites/me`), un favorito específico (`GET /api/favorites/me/:id`), calificar, gestionar solo sus favoritos
 3. **Usuario NO puede:** Crear/editar películas, ver favoritos de otros usuarios sin ser admin, acceder a `GET /api/favorites` (lista completa)
 4. **Sin autenticación:** Solo ver películas públicas
 
-### **Test Case 8: Paginación y filtros**
+### **Test Case 5: Paginación y filtros**
 1. **Listar películas con paginación:** `?page=2&limit=5`
 2. **Filtrar por género:** `?genre=Action`
 3. **Favoritos con filtros de fecha:** `?fromDate=2024-01-01&toDate=2024-12-31`
@@ -1085,6 +1027,228 @@ user_id = (copiar del perfil de usuario)
 
 ### **⚡ Comandos rápidos para setup:**
 ```bash
+---
+
+## 💬 **ENDPOINTS DE COMENTARIOS (commentRoutes.ts)**
+
+### **✨ Crear Comentario**
+```http
+POST http://localhost:5000/api/comments
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "movieId": "676b6e9474cd86f41226e133",
+  "content": "¡Esta película es increíble! La recomiendo mucho."
+}
+```
+
+**Validaciones:**
+- ✅ `movieId`: Requerido, debe ser ObjectId válido
+- ✅ `content`: Requerido, 1-200 caracteres
+- ✅ Token JWT válido
+
+**Casos de prueba:**
+1. **Comentario válido** → Status 201
+2. **MovieId inválido** → Status 400
+3. **Contenido vacío** → Status 400
+4. **Contenido > 200 caracteres** → Status 400
+5. **Sin autenticación** → Status 401
+6. **Película inexistente** → Status 404
+
+### **📄 Ver Comentarios de Película (Público)**
+```http
+GET http://localhost:5000/api/comments/movie/676b6e9474cd86f41226e133?page=1&limit=10
+```
+
+**Query Parameters:**
+- `page`: Número de página (opcional, default: 1)
+- `limit`: Elementos por página (opcional, default: 10, máx: 50)
+
+**Casos de prueba:**
+1. **Consulta básica** → Status 200 + comentarios paginados
+2. **Con paginación** → Status 200 + metadata de paginación
+3. **MovieId inválido** → Status 400
+4. **Película inexistente** → Status 404
+5. **Sin comentarios** → Status 200 + array vacío
+
+### **👤 Ver Mis Comentarios**
+```http
+GET http://localhost:5000/api/comments/me?page=1&limit=10
+Authorization: Bearer {{user_token}}
+```
+
+**Casos de prueba:**
+1. **Usuario con comentarios** → Status 200 + comentarios propios
+2. **Usuario sin comentarios** → Status 200 + array vacío
+3. **Sin autenticación** → Status 401
+4. **Paginación válida** → Status 200
+
+### **👁️ Ver Comentario Específico**
+```http
+GET http://localhost:5000/api/comments/676c1234567890abcdef1234
+Authorization: Bearer {{user_token}}
+```
+
+**Casos de prueba:**
+1. **Comentario propio** → Status 200
+2. **Comentario ajeno (no admin)** → Status 403
+3. **Comentario ajeno (admin)** → Status 200
+4. **ID inválido** → Status 400
+5. **Comentario inexistente** → Status 404
+
+### **✏️ Actualizar Comentario**
+```http
+PUT http://localhost:5000/api/comments/676c1234567890abcdef1234
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "content": "Actualicé mi opinión: es una obra maestra del cine."
+}
+```
+
+**Validaciones:**
+- ✅ Solo el autor puede editar sus comentarios
+- ✅ `content`: Requerido, 1-200 caracteres
+
+**Casos de prueba:**
+1. **Actualización válida** → Status 200
+2. **Editar comentario ajeno** → Status 403
+3. **Contenido inválido** → Status 400
+4. **Comentario inexistente** → Status 404
+
+### **🗑️ Eliminar Comentario (Soft Delete)**
+```http
+DELETE http://localhost:5000/api/comments/676c1234567890abcdef1234
+Authorization: Bearer {{user_token}}
+```
+
+**Casos de prueba:**
+1. **Eliminar comentario propio** → Status 200
+2. **Admin elimina cualquier comentario** → Status 200
+3. **Usuario elimina comentario ajeno** → Status 403
+4. **Comentario inexistente** → Status 404
+
+### **👑 Ver Todos los Comentarios (Admin)**
+```http
+GET http://localhost:5000/api/comments?page=1&limit=10&movieId=676b6e9474cd86f41226e133&userId=676a1234567890abcdef1234
+Authorization: Bearer {{admin_token}}
+```
+
+**Query Parameters:**
+- `page`: Número de página (opcional)
+- `limit`: Elementos por página (opcional)
+- `movieId`: Filtrar por película (opcional)
+- `userId`: Filtrar por usuario (opcional)
+
+**Casos de prueba:**
+1. **Admin sin filtros** → Status 200 + todos los comentarios
+2. **Admin con filtros** → Status 200 + comentarios filtrados
+3. **Usuario normal** → Status 403
+4. **Sin autenticación** → Status 401
+
+---
+
+## 🧪 **CASOS DE PRUEBA COMPLETOS - SISTEMA DE COMENTARIOS**
+
+### **📝 Flujo Típico de Comentarios**
+
+#### **Paso 1: Autenticarse**
+```http
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "User123!"
+}
+```
+
+#### **Paso 2: Obtener ID de Película**
+```http
+GET http://localhost:5000/api/movies
+Authorization: Bearer {{user_token}}
+```
+
+#### **Paso 3: Crear Comentario**
+```http
+POST http://localhost:5000/api/comments
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "movieId": "676b6e9474cd86f41226e133",
+  "content": "Excelente película, la recomiendo mucho."
+}
+```
+
+#### **Paso 4: Ver Comentarios de la Película**
+```http
+GET http://localhost:5000/api/comments/movie/676b6e9474cd86f41226e133
+```
+
+#### **Paso 5: Ver Mis Comentarios**
+```http
+GET http://localhost:5000/api/comments/me
+Authorization: Bearer {{user_token}}
+```
+
+#### **Paso 6: Actualizar Comentario**
+```http
+PUT http://localhost:5000/api/comments/{{comment_id}}
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "content": "Actualicé mi reseña: es una obra maestra."
+}
+```
+
+#### **Paso 7: Eliminar Comentario**
+```http
+DELETE http://localhost:5000/api/comments/{{comment_id}}
+Authorization: Bearer {{user_token}}
+```
+
+### **⚡ Variables de Entorno en Postman**
+
+Crea estas variables en Postman para facilitar el testing:
+
+```json
+{
+  "base_url": "http://localhost:5000",
+  "user_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "admin_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "movie_id": "676b6e9474cd86f41226e133",
+  "comment_id": "676c1234567890abcdef1234"
+}
+```
+
+### **🔍 Validaciones Específicas del Sistema de Comentarios**
+
+#### **Validación de Contenido**
+- ✅ **Mínimo:** 1 carácter (sin espacios en blanco)
+- ✅ **Máximo:** 200 caracteres
+- ✅ **Trim:** Espacios automáticamente removidos
+- ❌ **Solo espacios:** Rechazado
+
+#### **Seguridad**
+- ✅ **Autenticación:** Todos los endpoints (excepto lectura pública)
+- ✅ **Autorización:** Solo propietarios pueden editar/eliminar
+- ✅ **Admin override:** Admins pueden gestionar todos los comentarios
+- ✅ **Soft delete:** Los comentarios se marcan como inactivos
+
+#### **Rendimiento**
+- ✅ **Paginación:** Máximo 50 elementos por página
+- ✅ **Índices:** Optimizados para consultas por película y usuario
+- ✅ **Población:** Datos de usuario y película incluidos automáticamente
+
+---
+
+## 🚀 **COMANDOS RÁPIDOS PARA TESTING**
+
+```bash
 # 1. Crear datos de prueba
 npm run db:seed
 
@@ -1094,4 +1258,4 @@ npm run dev
 # 3. Listo para testing en Postman!
 ```
 
-¡Con esta guía tendrás todos los casos de prueba necesarios para validar completamente tu API! 🚀
+¡Con esta guía tendrás todos los casos de prueba necesarios para validar completamente tu API con el nuevo sistema de comentarios! 🚀
