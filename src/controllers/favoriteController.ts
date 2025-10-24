@@ -40,7 +40,7 @@ export const addFavorite = async (req: AuthenticatedRequest, res: Response): Pro
     }
 
     // Check if the authenticated user matches the requested userId or is admin
-    if (authenticatedUserId !== userId && req.user?.role !== 'admin') {
+    if (authenticatedUserId.toString() !== userId && req.user?.role !== 'admin') {
       res.status(HttpStatusCode.FORBIDDEN).json({
         success: false,
         message: 'Solo puedes gestionar tus propios favoritos',
@@ -447,7 +447,7 @@ export const deleteFavorite = async (req: AuthenticatedRequest, res: Response): 
     }
 
     // Check if the authenticated user owns this favorite or is admin
-    if (favorite.userId.toString() !== authenticatedUserId && req.user?.role !== 'admin') {
+    if (favorite.userId.toString() !== authenticatedUserId.toString() && req.user?.role !== 'admin') {
       res.status(HttpStatusCode.FORBIDDEN).json({
         success: false,
         message: 'Solo puedes eliminar tus propios favoritos',
