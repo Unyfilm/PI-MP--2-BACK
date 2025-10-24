@@ -36,7 +36,6 @@ export const getMovies = async (req: Request, res: Response): Promise<void> => {
       director,
     } = req.query as MovieSearchFilters;
 
-    // Build filter object
     const filter: any = { isActive: true };
 
     if (genre && Array.isArray(genre)) {
