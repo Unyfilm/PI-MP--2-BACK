@@ -108,7 +108,7 @@ commentSchema.statics.getMovieComments = async function(
       movieId: new mongoose.Types.ObjectId(movieId),
       isActive: true,
     })
-      .populate('userId', 'username email')
+      .populate('userId', 'firstName email')
       .populate('movieId', 'title')
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -149,6 +149,7 @@ commentSchema.statics.getUserComments = async function(
       userId: new mongoose.Types.ObjectId(userId),
       isActive: true,
     })
+      .populate('userId', 'firstName email')
       .populate('movieId', 'title')
       .sort({ createdAt: -1 })
       .skip(skip)

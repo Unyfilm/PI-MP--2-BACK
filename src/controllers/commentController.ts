@@ -91,7 +91,7 @@ export const createComment = async (req: AuthenticatedRequest, res: Response): P
     
     // Populate user and movie data for response
     const populatedComment = await Comment.findById(savedComment._id)
-      .populate('userId', 'username email')
+      .populate('userId', 'firstName email')
       .populate('movieId', 'title');
 
     res.status(HttpStatusCode.CREATED).json({
@@ -175,7 +175,7 @@ export const getAllComments = async (req: AuthenticatedRequest, res: Response): 
 
     const [comments, total] = await Promise.all([
       Comment.find(filter)
-        .populate('userId', 'username email')
+        .populate('userId', 'firstName email')
         .populate('movieId', 'title')
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -212,86 +212,10 @@ export const getAllComments = async (req: AuthenticatedRequest, res: Response): 
 };
 
 /**
- * Get comments for a specific movie (authenticated users)
+ * Get comments for a specific movie
  * Handles GET /api/comments/movie/:movieId
  *
  * @route GET /api/comments/movie/:movieId
- * @access Private (authenticated users)
- * @param {AuthenticatedRequest} req - Express request object with user authentication
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
-export const getMovieCommentsAuth = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const authenticatedUserId = req.userId;
-    const { movieId } = req.params;
-    const { page = '1', limit = '10' }: CommentQueryParams = req.query;
-
-    if (!authenticatedUserId) {
-      res.status(HttpStatusCode.UNAUTHORIZED).json({
-        success: false,
-        message: 'Autenticación requerida',
-        timestamp: new Date().toISOString(),
-      } as ApiResponse);
-      return;
-    }
-
-    // Validate movieId format
-    if (!mongoose.Types.ObjectId.isValid(movieId)) {
-      res.status(HttpStatusCode.BAD_REQUEST).json({
-        success: false,
-        message: 'ID de película inválido',
-        timestamp: new Date().toISOString(),
-      } as ApiResponse);
-      return;
-    }
-
-    // Check if movie exists
-    const movie = await Movie.findById(movieId);
-    if (!movie) {
-      res.status(HttpStatusCode.NOT_FOUND).json({
-        success: false,
-        message: 'Película no encontrada',
-        timestamp: new Date().toISOString(),
-      } as ApiResponse);
-      return;
-    }
-
-    const pageNum = Math.max(1, parseInt(page));
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit)));
-
-    const result = await Comment.getMovieComments(movieId, pageNum, limitNum);
-
-    res.status(HttpStatusCode.OK).json({
-      success: true,
-      message: 'Comentarios de película recuperados exitosamente',
-      data: result.comments,
-      pagination: {
-        currentPage: result.page,
-        totalPages: result.pages,
-        totalItems: result.total,
-        itemsPerPage: limitNum,
-        hasNextPage: result.page < result.pages,
-        hasPrevPage: result.page > 1,
-      },
-      timestamp: new Date().toISOString(),
-    } as PaginatedResponse);
-
-  } catch (error: any) {
-    console.error('Error getting movie comments (authenticated):', error);
-    res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      message: 'Error interno del servidor al obtener comentarios de película',
-      timestamp: new Date().toISOString(),
-    } as ApiResponse);
-  }
-};
-
-/**
- * Get comments for a specific movie (public access)
- * Handles GET /api/comments/public/movie/:movieId
- *
- * @route GET /api/comments/public/movie/:movieId
  * @access Public
  * @param {Request} req - Express request object
  * @param {Response} res - Express response object
@@ -445,7 +369,7 @@ export const getCommentById = async (req: AuthenticatedRequest, res: Response): 
       _id: commentId,
       isActive: true,
     })
-      .populate('userId', 'username email')
+      .populate('userId', 'firstName email')
       .populate('movieId', 'title');
 
     if (!comment) {
@@ -549,7 +473,7 @@ export const updateComment = async (req: AuthenticatedRequest, res: Response): P
 
     // Populate user and movie data for response
     const populatedComment = await Comment.findById(updatedComment._id)
-      .populate('userId', 'username email')
+      .populate('userId', 'firstName email')
       .populate('movieId', 'title');
 
     res.status(HttpStatusCode.OK).json({
