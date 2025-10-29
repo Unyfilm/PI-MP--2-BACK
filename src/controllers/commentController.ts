@@ -91,7 +91,7 @@ export const createComment = async (req: AuthenticatedRequest, res: Response): P
     
     // Populate user and movie data for response
     const populatedComment = await Comment.findById(savedComment._id)
-      .populate('userId', 'firstName email')
+      .populate('userId', 'firstName lastName email')
       .populate('movieId', 'title');
 
     res.status(HttpStatusCode.CREATED).json({
@@ -175,7 +175,7 @@ export const getAllComments = async (req: AuthenticatedRequest, res: Response): 
 
     const [comments, total] = await Promise.all([
       Comment.find(filter)
-        .populate('userId', 'firstName email')
+        .populate('userId', 'firstName lastName email')
         .populate('movieId', 'title')
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -369,7 +369,7 @@ export const getCommentById = async (req: AuthenticatedRequest, res: Response): 
       _id: commentId,
       isActive: true,
     })
-      .populate('userId', 'firstName email')
+      .populate('userId', 'firstName lastName email')
       .populate('movieId', 'title');
 
     if (!comment) {
@@ -473,7 +473,7 @@ export const updateComment = async (req: AuthenticatedRequest, res: Response): P
 
     // Populate user and movie data for response
     const populatedComment = await Comment.findById(updatedComment._id)
-      .populate('userId', 'firstName email')
+      .populate('userId', 'firstName lastName email')
       .populate('movieId', 'title');
 
     res.status(HttpStatusCode.OK).json({
