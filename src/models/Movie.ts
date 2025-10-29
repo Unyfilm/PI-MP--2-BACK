@@ -182,6 +182,9 @@ movieSchema.index({ isActive: 1 });
  * Virtual for formatted duration
  */
 movieSchema.virtual('formattedDuration').get(function(this: any) {
+  if (!this.duration || this.duration <= 0) {
+    return 'N/A';
+  }
   const hours = Math.floor(this.duration / 60);
   const minutes = this.duration % 60;
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
@@ -191,7 +194,7 @@ movieSchema.virtual('formattedDuration').get(function(this: any) {
  * Virtual for release year
  */
 movieSchema.virtual('releaseYear').get(function(this: any) {
-  return this.releaseDate.getFullYear();
+  return this.releaseDate ? this.releaseDate.getFullYear() : null;
 });
 
 /**
