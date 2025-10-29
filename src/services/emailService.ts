@@ -1,9 +1,10 @@
 /**
- * Email service for sending notifications with SendGrid API and Nodemailer fallback
+ * Email service for sending notifications with Brevo API, SendGrid API and Nodemailer fallback
  */
 
 import nodemailer from 'nodemailer';
 import sgMail from '@sendgrid/mail';
+import axios from 'axios';
 import { config } from '../config/environment';
 
 /**
@@ -65,23 +66,30 @@ const createTransporter = () => {
 export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
   try {
     const sendgridApiKey = process.env.SENDGRID_API_KEY;
+    const brevoApiKey = process.env.BREVO_API_KEY;
     const emailService = process.env.EMAIL_SERVICE || config.email.service;
     const hasGmailConfig = config.email.user && config.email.pass;
     const hasSendGridConfig = emailService === 'SendGrid' && sendgridApiKey;
+    const hasBrevoConfig = emailService === 'brevo_api' && brevoApiKey;
     
-    if (!hasGmailConfig && !hasSendGridConfig) {
+    if (!hasGmailConfig && !hasSendGridConfig && !hasBrevoConfig) {
       console.log(`📧 [EMAIL SIMULATION] Would send email to: ${options.to}`);
       console.log(`📧 Subject: ${options.subject}`);
       console.log(`📧 Content: ${options.text || options.html}`);
       return true;
     }
 
-    // PRIORITY 1: Use SendGrid API (HTTP - no blocked ports)
+    // PRIORITY 1: Use Brevo API (HTTP - no blocked ports)
+    if (hasBrevoConfig) {
+      return await sendEmailWithBrevo(options, brevoApiKey!);
+    }
+
+    // PRIORITY 2: Use SendGrid API (HTTP - no blocked ports)
     if (hasSendGridConfig) {
       return await sendEmailWithSendGrid(options, sendgridApiKey!);
     }
 
-    // PRIORITY 2: Fallback to Gmail SMTP
+    // PRIORITY 3: Fallback to Gmail SMTP
     if (hasGmailConfig) {
       return await sendEmailWithNodemailer(options);
     }
@@ -129,6 +137,57 @@ const sendEmailWithSendGrid = async (options: EmailOptions, apiKey: string): Pro
 };
 
 /**
+ * Send email using Brevo API (HTTP - production ready)
+ */
+const sendEmailWithBrevo = async (options: EmailOptions, apiKey: string): Promise<boolean> => {
+  try {
+    const senderEmail = process.env.EMAIL_FROM || config.email.user;
+    
+    const emailData = {
+      sender: {
+        email: senderEmail,
+        name: 'UnyFilm'
+      },
+      to: [
+        {
+          email: options.to
+        }
+      ],
+      subject: options.subject,
+      htmlContent: options.html || options.text || '',
+      textContent: options.text || ''
+    };
+
+    console.log(`📤 Sending email via Brevo API to: ${options.to}`);
+    
+    const response = await axios.post('https://api.brevo.com/v3/smtp/email', emailData, {
+      headers: {
+        'api-key': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      timeout: 15000 // 15 seconds timeout
+    });
+    
+    console.log(`✅ Email sent successfully via Brevo to ${options.to}`);
+    console.log(`📧 Brevo Response Status: ${response.status}`);
+    console.log(`📧 Brevo Message ID: ${response.data.messageId || 'N/A'}`);
+    return true;
+
+  } catch (error: any) {
+    console.error('❌ Brevo API failed:', error.message);
+    if (error.response) {
+      console.error('🔧 Brevo Error Details:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      });
+    }
+    throw error;
+  }
+};
+
+/**
  * Send email using Nodemailer (Gmail SMTP fallback)
  */
 const sendEmailWithNodemailer = async (options: EmailOptions): Promise<boolean> => {
@@ -142,7 +201,7 @@ const sendEmailWithNodemailer = async (options: EmailOptions): Promise<boolean> 
     
     const senderEmail = process.env.EMAIL_FROM || config.email.user;
     const mailOptions = {
-      from: `"Movie Platform" <${senderEmail}>`,
+      from: `"UnyFilm" <${senderEmail}>`,
       to: options.to,
       subject: options.subject,
       text: options.text,
@@ -200,7 +259,7 @@ export const sendPasswordResetEmail = async (email: string, resetLink: string): 
     <body>
       <div class="container">
         <div class="header">
-          <h1>🎬 Movie Platform</h1>
+          <h1>🎬 UnyFilm</h1>
         </div>
         
         <div class="content">
@@ -225,7 +284,7 @@ export const sendPasswordResetEmail = async (email: string, resetLink: string): 
         
         <div class="footer">
           <p>Si no solicitaste este cambio, tu cuenta sigue siendo segura.</p>
-          <p>&copy; 2025 Movie Platform. Todos los derechos reservados.</p>
+          <p>&copy; 2025 UnyFilm. Todos los derechos reservados.</p>
         </div>
       </div>
     </body>
@@ -235,7 +294,7 @@ export const sendPasswordResetEmail = async (email: string, resetLink: string): 
   const text = `
 Hola,
 
-Recibimos una solicitud para restablecer la contraseña de tu cuenta en Movie Platform.
+Recibimos una solicitud para restablecer la contraseña de tu cuenta en UnyFilm.
 
 Para restablecer tu contraseña, visita este enlace:
 ${resetLink}
@@ -245,7 +304,7 @@ ${resetLink}
 Si no solicitaste este cambio, puedes ignorar este email.
 
 Saludos,
-Equipo de Movie Platform
+Equipo de UnyFilm
   `;
 
   return await sendEmail({
