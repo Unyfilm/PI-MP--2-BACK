@@ -1,32 +1,24 @@
-/**
- * Cloudinary service for video management
- * Handles video URL generation with signed URLs for security
- */
 
 import { v2 as cloudinary } from 'cloudinary';
 import { config } from '../config/environment';
 
-// Configure Cloudinary
+
 cloudinary.config({
   cloud_name: config.cloudinary.cloudName,
   api_key: config.cloudinary.apiKey,
   api_secret: config.cloudinary.apiSecret,
 });
 
-/**
- * Cloudinary service interface
- */
+
 export interface CloudinaryService {
   generateSignedVideoUrl(videoId: string, options?: VideoOptions): string;
   uploadVideo(videoPath: string, options?: UploadOptions): Promise<UploadResult>;
   deleteVideo(videoId: string): Promise<DeleteResult>;
 }
 
-/**
- * Video options for URL generation
- */
+
 export interface VideoOptions {
-  duration?: number; // URL expiration in seconds (default: 1 hour)
+  duration?: number; 
   transformation?: {
     width?: number;
     height?: number;
@@ -35,18 +27,14 @@ export interface VideoOptions {
   };
 }
 
-/**
- * Upload options for video upload
- */
+
 export interface UploadOptions {
   folder?: string;
   resource_type?: 'video' | 'image' | 'raw';
   public_id?: string;
 }
 
-/**
- * Upload result interface
- */
+
 export interface UploadResult {
   public_id: string;
   secure_url: string;
@@ -55,32 +43,23 @@ export interface UploadResult {
   height?: number;
 }
 
-/**
- * Delete result interface
- */
+
 export interface DeleteResult {
   result: string;
   public_id: string;
 }
 
-/**
- * Cloudinary service implementation
- */
+
 class CloudinaryServiceImpl implements CloudinaryService {
-  /**
-   * Generate a signed URL for video access
-   * @param videoId - The public ID of the video in Cloudinary
-   * @param options - Video options for URL generation
-   * @returns Signed URL for video access
-   */
+  
   generateSignedVideoUrl(videoId: string, options: VideoOptions = {}): string {
     const {
-      duration = 3600, // 1 hour default
+      duration = 3600, 
       transformation = {}
     } = options;
 
     try {
-      // Generate signed URL with expiration
+      
       const signedUrl = cloudinary.url(videoId, {
         resource_type: 'video',
         expires_at: Math.floor(Date.now() / 1000) + duration,
@@ -99,12 +78,7 @@ class CloudinaryServiceImpl implements CloudinaryService {
     }
   }
 
-  /**
-   * Upload a video to Cloudinary
-   * @param videoPath - Path to the video file
-   * @param options - Upload options
-   * @returns Upload result with video details
-   */
+  
   async uploadVideo(videoPath: string, options: UploadOptions = {}): Promise<UploadResult> {
     const {
       folder = 'movies',
@@ -134,11 +108,7 @@ class CloudinaryServiceImpl implements CloudinaryService {
     }
   }
 
-  /**
-   * Delete a video from Cloudinary
-   * @param videoId - The public ID of the video to delete
-   * @returns Delete result
-   */
+  
   async deleteVideo(videoId: string): Promise<DeleteResult> {
     try {
       const result = await cloudinary.uploader.destroy(videoId, {
@@ -155,11 +125,7 @@ class CloudinaryServiceImpl implements CloudinaryService {
     }
   }
 
-  /**
-   * Get video information from Cloudinary
-   * @param videoId - The public ID of the video
-   * @returns Video information
-   */
+  
   async getVideoInfo(videoId: string): Promise<any> {
     try {
       const result = await cloudinary.api.resource(videoId, {
@@ -182,5 +148,5 @@ class CloudinaryServiceImpl implements CloudinaryService {
   }
 }
 
-// Export singleton instance
+
 export const cloudinaryService = new CloudinaryServiceImpl();

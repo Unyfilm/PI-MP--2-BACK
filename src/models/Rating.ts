@@ -1,35 +1,19 @@
-/**
- * Rating model definition for MongoDB
- * Represents individual user ratings for movies
- */
-
-/**
- * Rating model definition for MongoDB
- * Representa calificaciones individuales de usuarios para películas
- */
 
 import mongoose, { Schema, Model, Types } from 'mongoose';
 
-/**
- * Interface para documento de calificación
- */
 export interface IRating extends mongoose.Document {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
   movieId: Types.ObjectId;
-  rating: number; // 1-5 estrellas
-  review: string; // Reseña opcional
+  rating: number; 
+  review: string; 
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
   
-  // Instance methods
   validateRating(): boolean;
 }
 
-/**
- * Interface para el modelo Rating con métodos estáticos
- */
 interface IRatingModel extends Model<IRating> {
   calculateMovieStats(movieId: string): Promise<{
     average: number;
@@ -38,10 +22,7 @@ interface IRatingModel extends Model<IRating> {
   }>;
 }
 
-/**
- * Rating schema definition
- * Stores individual ratings given by users to movies
- */
+
 const ratingSchema = new Schema<IRating>({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -87,26 +68,16 @@ const ratingSchema = new Schema<IRating>({
   },
 });
 
-/**
- * Compound index to ensure one rating per user per movie
- */
+
 ratingSchema.index({ userId: 1, movieId: 1 }, { unique: true });
 
-/**
- * Index for efficient queries by movie
- */
+
 ratingSchema.index({ movieId: 1, isActive: 1 });
 
-/**
- * Index for efficient queries by user
- */
+
 ratingSchema.index({ userId: 1, isActive: 1 });
 
-/**
- * Static method to calculate movie rating statistics
- * @param movieId - The movie ID to calculate statistics for
- * @returns Rating statistics including average, count, and distribution
- */
+
 ratingSchema.statics.calculateMovieStats = async function(movieId: string) {
   const pipeline = [
     {
@@ -125,12 +96,12 @@ ratingSchema.statics.calculateMovieStats = async function(movieId: string) {
 
   const results = await this.aggregate(pipeline);
   
-  // Initialize distribution
+  
   const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   let totalRatings = 0;
   let totalScore = 0;
 
-  // Fill distribution and calculate totals
+  
   results.forEach((result: any) => {
     const rating = result._id;
     const count = result.count;
@@ -148,26 +119,19 @@ ratingSchema.statics.calculateMovieStats = async function(movieId: string) {
   };
 };
 
-/**
- * Instance method to validate if user can rate this movie
- * @returns boolean indicating if the rating is valid
- */
+
 ratingSchema.methods.validateRating = function(): boolean {
   return this.rating >= 1 && this.rating <= 5 && Number.isInteger(this.rating);
 };
 
-/**
- * Pre-save middleware to validate rating
- */
+
 ratingSchema.pre('save', function(next) {
-  // Usar this directamente ya que es un documento de Mongoose
+  
   if (this.rating < 1 || this.rating > 5 || !Number.isInteger(this.rating)) {
     return next(new Error('Valor de calificación inválido. Debe ser un entero entre 1 y 5.'));
   }
   next();
 });
 
-/**
- * Rating model
- */
+
 export const Rating = mongoose.model<IRating, IRatingModel>('Rating', ratingSchema);

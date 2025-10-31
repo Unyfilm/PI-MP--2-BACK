@@ -8,22 +8,21 @@ let mongoServer: MongoMemoryServer;
 
 describe('POST /api/auth/register', () => {
   beforeAll(async () => {
-    // Create in-memory MongoDB instance
+    
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
     
-    // Connect to in-memory database
     await mongoose.connect(mongoUri);
   }, 30000);
 
   afterAll(async () => {
-    // Close connection and stop MongoDB instance
+    
     await mongoose.disconnect();
     await mongoServer.stop();
   }, 10000);
 
   beforeEach(async () => {
-    // Clear all users before each test
+   
     await User.deleteMany({});
   });
 
@@ -115,7 +114,7 @@ describe('POST /api/auth/register', () => {
   });
 
   it('should fail if email already exists', async () => {
-    // Create existing user in memory database
+    
     await User.create({
       username: 'existinguser',
       email: 'existing@example.com',
@@ -149,7 +148,7 @@ describe('POST /api/auth/register', () => {
         confirmPassword: 'Password1!',
         firstName: 'Test',
         lastName: 'User',
-        age: 12, // Invalid age (under 13)
+        age: 12, 
       });
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/edad debe ser/i);

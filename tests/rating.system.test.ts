@@ -1,7 +1,3 @@
-/**
- * Rating System Tests
- * Tests for movie rating functionality including creation, reading, updating, and statistics
- */
 
 import request from 'supertest';
 import mongoose from 'mongoose';
@@ -20,27 +16,27 @@ let authToken2: string;
 
 describe('Rating System Tests', () => {
   beforeAll(async () => {
-    // Create in-memory MongoDB instance
+    
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
     
-    // Connect to in-memory database
+    
     await mongoose.connect(mongoUri);
   }, 30000);
 
   afterAll(async () => {
-    // Close connection and stop MongoDB instance
+    
     await mongoose.disconnect();
     await mongoServer.stop();
   }, 10000);
 
   beforeEach(async () => {
-    // Clear all collections before each test
+    
     await User.deleteMany({});
     await Movie.deleteMany({});
     await Rating.deleteMany({});
 
-    // Create test users
+    
     const user1Response = await request(app)
       .post('/api/auth/register')
       .send({
@@ -63,7 +59,7 @@ describe('Rating System Tests', () => {
         age: 30,
       });
 
-    // Login to get tokens
+   
     const login1Response = await request(app)
       .post('/api/auth/login')
       .send({
@@ -83,7 +79,7 @@ describe('Rating System Tests', () => {
     testUser1 = login1Response.body.data.user;
     testUser2 = login2Response.body.data.user;
 
-    // Create a test movie
+    
     testMovie = new Movie({
       title: 'Test Movie',
       description: 'A test movie for rating tests',
@@ -124,7 +120,7 @@ describe('Rating System Tests', () => {
     });
 
     it('should update existing rating when user rates same movie again', async () => {
-      // Create initial rating
+      
       await request(app)
         .post('/api/ratings')
         .set('Authorization', `Bearer ${authToken1}`)
@@ -134,7 +130,7 @@ describe('Rating System Tests', () => {
           review: 'Initial review',
         });
 
-      // Update rating
+      
       const updatedRatingData = {
         movieId: testMovie._id.toString(),
         rating: 5,
@@ -152,7 +148,7 @@ describe('Rating System Tests', () => {
       expect(res.body.data.rating.rating).toBe(5);
       expect(res.body.data.rating.review).toBe('Updated review - much better!');
 
-      // Verify only one rating exists for this user-movie combination
+      
       const totalRatings = await Rating.countDocuments({
         userId: testUser1.id,
         movieId: testMovie._id,
@@ -225,7 +221,7 @@ describe('Rating System Tests', () => {
 
   describe('GET /api/ratings/movie/:movieId/stats - Get Movie Rating Statistics', () => {
     beforeEach(async () => {
-      // Create multiple ratings for testing statistics
+      
       await Rating.create([
         { userId: testUser1.id, movieId: testMovie._id, rating: 5, review: 'Excellent!' },
         { userId: testUser2.id, movieId: testMovie._id, rating: 4, review: 'Very good!' },
@@ -285,7 +281,7 @@ describe('Rating System Tests', () => {
 
   describe('GET /api/ratings/movie/:movieId/user - Get User Rating', () => {
     it('should return user rating for a movie', async () => {
-      // Create a rating
+      
       await Rating.create({
         userId: testUser1.id,
         movieId: testMovie._id,
@@ -324,7 +320,7 @@ describe('Rating System Tests', () => {
 
   describe('GET /api/ratings/movie/:movieId - Get Movie Ratings with Pagination', () => {
     beforeEach(async () => {
-      // Create multiple ratings
+      
       const ratings = [];
       for (let i = 1; i <= 15; i++) {
         const user = new User({
@@ -339,7 +335,7 @@ describe('Rating System Tests', () => {
         ratings.push({
           userId: user._id,
           movieId: testMovie._id,
-          rating: (i % 5) + 1, // Ratings from 1-5
+          rating: (i % 5) + 1, 
           review: `Review number ${i}`,
         });
       }
@@ -371,7 +367,7 @@ describe('Rating System Tests', () => {
 
   describe('DELETE /api/ratings/movie/:movieId - Delete User Rating', () => {
     it('should delete user rating successfully', async () => {
-      // Create a rating
+      
       await Rating.create({
         userId: testUser1.id,
         movieId: testMovie._id,
@@ -387,7 +383,7 @@ describe('Rating System Tests', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.message).toMatch(/rating deleted successfully/i);
 
-      // Verify rating is soft deleted (isActive = false)
+      
       const rating = await Rating.findOne({
         userId: testUser1.id,
         movieId: testMovie._id,
@@ -416,7 +412,7 @@ describe('Rating System Tests', () => {
 
   describe('PUT /api/ratings/:ratingId - Update Existing Rating', () => {
     it('debería actualizar una calificación existente por ID', async () => {
-      // Crear una calificación inicial
+      
       const ratingData = {
         movieId: testMovie._id.toString(),
         rating: 3,
@@ -430,7 +426,7 @@ describe('Rating System Tests', () => {
 
       const ratingId = createRes.body.data.rating.id;
 
-      // Actualizar la calificación
+      
       const updateData = {
         rating: 5,
         review: 'Increíble película! Cambié de opinión después de verla de nuevo.',
@@ -449,7 +445,7 @@ describe('Rating System Tests', () => {
     });
 
     it('debería rechazar actualización de calificación que no pertenece al usuario', async () => {
-      // User1 crea una calificación
+      
       const ratingData = {
         movieId: testMovie._id.toString(),
         rating: 4,
@@ -463,7 +459,7 @@ describe('Rating System Tests', () => {
 
       const ratingId = createRes.body.data.rating.id;
 
-      // User2 intenta actualizar la calificación de User1
+      
       const updateRes = await request(app)
         .put(`/api/ratings/${ratingId}`)
         .set('Authorization', `Bearer ${authToken2}`)
@@ -497,13 +493,13 @@ describe('Rating System Tests', () => {
 
   describe('Rating Statistics Integration', () => {
     it('should correctly calculate rating statistics with multiple users', async () => {
-      // Create ratings: 2 five-stars, 1 four-star, 1 three-star, 1 one-star
+     
       const ratings = [
         { userId: testUser1.id, movieId: testMovie._id, rating: 5 },
         { userId: testUser2.id, movieId: testMovie._id, rating: 5 },
       ];
 
-      // Create additional users for more ratings
+      
       for (let i = 0; i < 3; i++) {
         const user = new User({
           email: `ratinguser${i}@test.com`,
@@ -517,7 +513,7 @@ describe('Rating System Tests', () => {
         ratings.push({
           userId: user._id,
           movieId: testMovie._id,
-          rating: i + 1, // ratings: 1, 2, 3
+          rating: i + 1, 
         });
       }
 
@@ -528,7 +524,7 @@ describe('Rating System Tests', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.totalRatings).toBe(5);
-      // Average should be (5+5+1+2+3)/5 = 16/5 = 3.2
+      
       expect(res.body.data.averageRating).toBe(3.2);
       expect(res.body.data.distribution).toEqual({
         1: 1,

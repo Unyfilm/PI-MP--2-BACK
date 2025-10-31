@@ -1,7 +1,3 @@
-/**
- * Rating controller
- * Handles all rating-related operations including creating, updating, and retrieving movie ratings
- */
 
 import { Request, Response } from 'express';
 import { Rating } from '../models/Rating';
@@ -16,16 +12,7 @@ import {
 import { ApiResponse, AuthenticatedRequest, HttpStatusCode } from '../types/api.types';
 import mongoose from 'mongoose';
 
-/**
- * Create or update a rating for a movie
- * Handles POST /api/ratings
- *
- * @route POST /api/ratings
- * @access Private
- * @param {AuthenticatedRequest} req - Express request object with user authentication
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
+
 export const createOrUpdateRating = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId;
@@ -40,7 +27,7 @@ export const createOrUpdateRating = async (req: AuthenticatedRequest, res: Respo
       return;
     }
 
-    // Validate required fields
+    
     if (!movieId || !rating) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -50,7 +37,7 @@ export const createOrUpdateRating = async (req: AuthenticatedRequest, res: Respo
       return;
     }
 
-    // Validate rating value
+    
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -60,7 +47,7 @@ export const createOrUpdateRating = async (req: AuthenticatedRequest, res: Respo
       return;
     }
 
-    // Validate movieId format
+    
     if (!mongoose.Types.ObjectId.isValid(movieId)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -70,7 +57,7 @@ export const createOrUpdateRating = async (req: AuthenticatedRequest, res: Respo
       return;
     }
 
-    // Check if movie exists and is active
+    
     const movie = await Movie.findOne({ _id: movieId, isActive: true });
     if (!movie) {
       res.status(HttpStatusCode.NOT_FOUND).json({
@@ -81,7 +68,7 @@ export const createOrUpdateRating = async (req: AuthenticatedRequest, res: Respo
       return;
     }
 
-    // Check if user exists and is active
+    
     const user = await User.findOne({ _id: userId, isActive: true });
     if (!user) {
       res.status(HttpStatusCode.NOT_FOUND).json({
@@ -92,18 +79,18 @@ export const createOrUpdateRating = async (req: AuthenticatedRequest, res: Respo
       return;
     }
 
-    // Try to find existing rating (active or inactive)
+    
     let existingRating = await Rating.findOne({ userId, movieId });
 
     if (existingRating) {
-      // Update existing rating (reactivate if it was soft deleted)
+      
       existingRating.rating = rating;
       existingRating.review = review || '';
-      existingRating.isActive = true; // Reactivate if it was soft deleted
+      existingRating.isActive = true; 
       existingRating.updatedAt = new Date();
       await existingRating.save();
 
-      // Recalculate movie rating stats
+      
       const stats = await Rating.calculateMovieStats(movieId);
       await Movie.findByIdAndUpdate(movieId, { rating: stats });
 
@@ -125,18 +112,18 @@ export const createOrUpdateRating = async (req: AuthenticatedRequest, res: Respo
         timestamp: new Date().toISOString(),
       } as ApiResponse);
     } else {
-      // Create new rating
+      
       const newRating = new Rating({
         userId,
         movieId,
         rating,
         review: review || '',
-        isActive: true, // Explicitly set as active
+        isActive: true, 
       });
 
       await newRating.save();
 
-      // Recalculate movie rating stats
+      
       const stats = await Rating.calculateMovieStats(movieId);
       await Movie.findByIdAndUpdate(movieId, { rating: stats });
 
@@ -161,7 +148,7 @@ export const createOrUpdateRating = async (req: AuthenticatedRequest, res: Respo
   } catch (error: any) {
     console.error('Create/Update rating error:', error);
     
-    // Handle duplicate key error specifically
+    
     if (error.code === 11000 && error.keyPattern?.userId && error.keyPattern?.movieId) {
       res.status(HttpStatusCode.CONFLICT).json({
         success: false,
@@ -181,16 +168,7 @@ export const createOrUpdateRating = async (req: AuthenticatedRequest, res: Respo
   }
 };
 
-/**
- * Update an existing rating by rating ID
- * Handles PUT /api/ratings/:ratingId
- *
- * @route PUT /api/ratings/:ratingId
- * @access Private
- * @param {AuthenticatedRequest} req - Express request object with user authentication
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
+
 export const updateRating = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId;
@@ -206,7 +184,7 @@ export const updateRating = async (req: AuthenticatedRequest, res: Response): Pr
       return;
     }
 
-    // Validar formato del ratingId
+   
     if (!mongoose.Types.ObjectId.isValid(ratingId)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -216,7 +194,7 @@ export const updateRating = async (req: AuthenticatedRequest, res: Response): Pr
       return;
     }
 
-    // Buscar la calificación existente
+    
     const existingRating = await Rating.findOne({ 
       _id: ratingId, 
       userId, 
@@ -232,7 +210,7 @@ export const updateRating = async (req: AuthenticatedRequest, res: Response): Pr
       return;
     }
 
-    // Verificar que la película aún existe
+    
     const movie = await Movie.findOne({ _id: existingRating.movieId, isActive: true });
     if (!movie) {
       res.status(HttpStatusCode.NOT_FOUND).json({
@@ -243,14 +221,14 @@ export const updateRating = async (req: AuthenticatedRequest, res: Response): Pr
       return;
     }
 
-    // Actualizar la calificación
+    
     if (rating !== undefined) existingRating.rating = rating;
     if (review !== undefined) existingRating.review = review;
     existingRating.updatedAt = new Date();
 
     await existingRating.save();
 
-    // Recalcular estadísticas de la película
+    
     const stats = await Rating.calculateMovieStats(existingRating.movieId.toString());
     await Movie.findByIdAndUpdate(existingRating.movieId, { rating: stats });
 
@@ -282,21 +260,12 @@ export const updateRating = async (req: AuthenticatedRequest, res: Response): Pr
   }
 };
 
-/**
- * Get movie rating statistics
- * Handles GET /api/ratings/movie/:movieId/stats
- *
- * @route GET /api/ratings/movie/:movieId/stats
- * @access Public
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
+
 export const getMovieRatingStats = async (req: Request, res: Response): Promise<void> => {
   try {
     const { movieId } = req.params;
 
-    // Validate movieId format
+    
     if (!mongoose.Types.ObjectId.isValid(movieId)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -306,7 +275,7 @@ export const getMovieRatingStats = async (req: Request, res: Response): Promise<
       return;
     }
 
-    // Check if movie exists
+    
     const movie = await Movie.findOne({ _id: movieId, isActive: true });
     if (!movie) {
       res.status(HttpStatusCode.NOT_FOUND).json({
@@ -317,7 +286,7 @@ export const getMovieRatingStats = async (req: Request, res: Response): Promise<
       return;
     }
 
-    // Get rating statistics
+    
     const stats = await Rating.calculateMovieStats(movieId);
 
     res.status(HttpStatusCode.OK).json({
@@ -342,16 +311,7 @@ export const getMovieRatingStats = async (req: Request, res: Response): Promise<
   }
 };
 
-/**
- * Get user's rating for a specific movie
- * Handles GET /api/ratings/movie/:movieId/user
- *
- * @route GET /api/ratings/movie/:movieId/user
- * @access Private
- * @param {AuthenticatedRequest} req - Express request object with user authentication
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
+
 export const getUserMovieRating = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId;
@@ -366,7 +326,7 @@ export const getUserMovieRating = async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
-    // Validate movieId format
+    
     if (!mongoose.Types.ObjectId.isValid(movieId)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -376,7 +336,7 @@ export const getUserMovieRating = async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
-    // Find user's rating for the movie
+    
     const rating = await Rating.findOne({ userId, movieId, isActive: true });
 
     if (!rating) {
@@ -413,22 +373,13 @@ export const getUserMovieRating = async (req: AuthenticatedRequest, res: Respons
   }
 };
 
-/**
- * Get all ratings for a movie with pagination
- * Handles GET /api/ratings/movie/:movieId
- *
- * @route GET /api/ratings/movie/:movieId
- * @access Public
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
+
 export const getMovieRatings = async (req: Request, res: Response): Promise<void> => {
   try {
     const { movieId } = req.params;
     const { page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' }: RatingQueryParams = req.query;
 
-    // Validate movieId format
+    
     if (!mongoose.Types.ObjectId.isValid(movieId)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -438,7 +389,7 @@ export const getMovieRatings = async (req: Request, res: Response): Promise<void
       return;
     }
 
-    // Check if movie exists
+    
     const movie = await Movie.findOne({ _id: movieId, isActive: true });
     if (!movie) {
       res.status(HttpStatusCode.NOT_FOUND).json({
@@ -453,12 +404,12 @@ export const getMovieRatings = async (req: Request, res: Response): Promise<void
     const limitNumber = Math.min(50, Math.max(1, Number(limit)));
     const skip = (pageNumber - 1) * limitNumber;
 
-    // Build sort object
+    
     const sortOrder = order === 'asc' ? 1 : -1;
     const sortObj: any = {};
     sortObj[sortBy] = sortOrder;
 
-    // Get ratings with user information
+   
     const ratings = await Rating.find({ movieId, isActive: true })
       .populate('userId', 'firstName lastName username profilePicture')
       .sort(sortObj)
@@ -466,7 +417,7 @@ export const getMovieRatings = async (req: Request, res: Response): Promise<void
       .limit(limitNumber)
       .lean();
 
-    // Get total count for pagination
+    
     const totalRatings = await Rating.countDocuments({ movieId, isActive: true });
     const totalPages = Math.ceil(totalRatings / limitNumber);
 
@@ -508,16 +459,7 @@ export const getMovieRatings = async (req: Request, res: Response): Promise<void
   }
 };
 
-/**
- * Delete a user's rating for a movie
- * Handles DELETE /api/ratings/movie/:movieId
- *
- * @route DELETE /api/ratings/movie/:movieId
- * @access Private
- * @param {AuthenticatedRequest} req - Express request object with user authentication
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
+
 export const deleteUserRating = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId;
@@ -532,7 +474,7 @@ export const deleteUserRating = async (req: AuthenticatedRequest, res: Response)
       return;
     }
 
-    // Validate movieId format
+    
     if (!mongoose.Types.ObjectId.isValid(movieId)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -542,7 +484,7 @@ export const deleteUserRating = async (req: AuthenticatedRequest, res: Response)
       return;
     }
 
-    // Find and deactivate the rating (soft delete)
+    
     const rating = await Rating.findOne({ userId, movieId, isActive: true });
 
     if (!rating) {
@@ -554,11 +496,11 @@ export const deleteUserRating = async (req: AuthenticatedRequest, res: Response)
       return;
     }
 
-    // Soft delete the rating
+    
     rating.isActive = false;
     await rating.save();
 
-    // Recalculate movie rating stats
+    
     const stats = await Rating.calculateMovieStats(movieId);
     await Movie.findByIdAndUpdate(movieId, { rating: stats });
 

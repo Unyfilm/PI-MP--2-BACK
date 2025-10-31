@@ -1,13 +1,6 @@
-/**
- * Comment model definition for MongoDB
- * Represents user comments on movies
- */
 
 import mongoose, { Schema, Model, Types } from 'mongoose';
 
-/**
- * Interface para documento de comentario
- */
 export interface IComment extends mongoose.Document {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
@@ -17,13 +10,10 @@ export interface IComment extends mongoose.Document {
   createdAt: Date;
   updatedAt: Date;
   
-  // Instance methods
   validateContent(): boolean;
 }
 
-/**
- * Interface para el modelo Comment con métodos estáticos
- */
+
 interface ICommentModel extends Model<IComment> {
   getMovieComments(movieId: string, page?: number, limit?: number): Promise<{
     comments: IComment[];
@@ -39,10 +29,7 @@ interface ICommentModel extends Model<IComment> {
   }>;
 }
 
-/**
- * Comment schema definition
- * Stores user comments on movies
- */
+
 const commentSchema = new Schema<IComment>({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -79,23 +66,12 @@ const commentSchema = new Schema<IComment>({
   },
 });
 
-/**
- * Compound index for efficient queries by movie and active status
- */
+
 commentSchema.index({ movieId: 1, isActive: 1, createdAt: -1 });
 
-/**
- * Index for efficient queries by user
- */
+
 commentSchema.index({ userId: 1, isActive: 1, createdAt: -1 });
 
-/**
- * Static method to get paginated comments for a specific movie
- * @param movieId - The movie ID to get comments for
- * @param page - Page number (default: 1)
- * @param limit - Items per page (default: 10)
- * @returns Paginated comments with metadata
- */
 commentSchema.statics.getMovieComments = async function(
   movieId: string, 
   page: number = 1, 
@@ -130,13 +106,7 @@ commentSchema.statics.getMovieComments = async function(
   };
 };
 
-/**
- * Static method to get paginated comments for a specific user
- * @param userId - The user ID to get comments for
- * @param page - Page number (default: 1)
- * @param limit - Items per page (default: 10)
- * @returns Paginated comments with metadata
- */
+
 commentSchema.statics.getUserComments = async function(
   userId: string, 
   page: number = 1, 
@@ -171,21 +141,16 @@ commentSchema.statics.getUserComments = async function(
   };
 };
 
-/**
- * Instance method to validate comment content
- * @returns boolean indicating if the content is valid
- */
+
 commentSchema.methods.validateContent = function(): boolean {
   return this.content && 
          this.content.trim().length > 0 && 
          this.content.trim().length <= 200;
 };
 
-/**
- * Pre-save middleware to validate content
- */
+
 commentSchema.pre('save', function(next) {
-  // Trim content and validate
+  
   this.content = this.content.trim();
   
   if (!this.validateContent()) {
@@ -195,7 +160,5 @@ commentSchema.pre('save', function(next) {
   next();
 });
 
-/**
- * Comment model
- */
+
 export const Comment = mongoose.model<IComment, ICommentModel>('Comment', commentSchema);

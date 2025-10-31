@@ -1,14 +1,9 @@
-/**
- * User model definition for MongoDB
- */
 
 import mongoose, { Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { IUser, UserRole, UserPreferences, VideoQuality } from '../types/user.types';
 
-/**
- * User preferences schema
- */
+
 const userPreferencesSchema = new Schema<UserPreferences>({
   language: {
     type: String,
@@ -30,20 +25,18 @@ const userPreferencesSchema = new Schema<UserPreferences>({
   },
 }, { _id: false });
 
-/**
- * User schema definition
- */
+
 const userSchema = new Schema<IUser>({
   username: {
     type: String,
-    required: false, // Username is now optional
+    required: false, 
     unique: true,
-    sparse: true, // Allows multiple null/undefined values without unique constraint issues
+    sparse: true, 
     trim: true,
     minlength: [3, 'Username must be at least 3 characters long'],
     maxlength: [30, 'Username cannot exceed 30 characters'],
     match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'],
-    default: undefined, // Explicitly set to undefined when not provided
+    default: undefined, 
   },
   email: {
     type: String,
@@ -57,7 +50,7 @@ const userSchema = new Schema<IUser>({
     type: String,
     required: [true, 'Password is required'],
     minlength: [8, 'Password must be at least 8 characters long'],
-    select: false, // Don't include password in queries by default
+    select: false, 
   },
   firstName: {
     type: String,
@@ -85,16 +78,12 @@ const userSchema = new Schema<IUser>({
     type: String,
     default: '',
   },
-  /**
-   * Token for password reset (optional)
-   */
+  
   resetPasswordToken: {
     type: String,
     default: undefined,
   },
-  /**
-   * Expiration date for the reset token (optional)
-   */
+ 
   resetPasswordExpires: {
     type: Date,
     default: undefined,
@@ -122,9 +111,7 @@ const userSchema = new Schema<IUser>({
   },
 });
 
-/**
- * Hash password before saving
- */
+
 userSchema.pre('save', async function(next: any) {
   if (!this.isModified('password')) return next();
   
@@ -137,9 +124,6 @@ userSchema.pre('save', async function(next: any) {
   }
 });
 
-/**
- * Compare password method
- */
 userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
   if (!this.password) {
     return false;
@@ -147,18 +131,16 @@ userSchema.methods.comparePassword = async function(candidatePassword: string): 
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-/**
- * Generate unique username based on first name and last name
- */
+
 userSchema.methods.generateUsername = async function(): Promise<string> {
   const baseUsername = `${this.firstName}${this.lastName}`.toLowerCase()
-    .replace(/[^a-z0-9]/g, '') // Remove special characters
-    .substring(0, 20); // Limit length
+    .replace(/[^a-z0-9]/g, '') 
+    .substring(0, 20); 
   
   let username = baseUsername;
   let counter = 1;
   
-  // Check if username exists and increment until unique
+  
   while (await User.findOne({ username, _id: { $ne: this._id } })) {
     username = `${baseUsername}${counter}`;
     counter++;
@@ -167,21 +149,15 @@ userSchema.methods.generateUsername = async function(): Promise<string> {
   return username;
 };
 
-/**
- * Get display name (username or full name)
- */
+
 userSchema.virtual('displayName').get(function(this: any) {
   return this.username || this.fullName;
 });
 
-/**
- * Get full name virtual
- */
+
 userSchema.virtual('fullName').get(function(this: any) {
   return `${this.firstName} ${this.lastName}`;
 });
 
-/**
- * User model
- */
+
 export const User = mongoose.model<IUser>('User', userSchema);

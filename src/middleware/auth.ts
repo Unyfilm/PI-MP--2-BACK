@@ -1,7 +1,3 @@
-/**
- * Authentication middleware
- */
-
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
@@ -10,12 +6,7 @@ import { AuthenticatedRequest, JwtPayload, HttpStatusCode, ApiResponse } from '.
 import { UserRole } from '../types/user.types';
 import { config } from '../config/environment';
 
-/**
- * Verify JWT token and authenticate user
- * @param req - Express request object
- * @param res - Express response object
- * @param next - Express next function
- */
+
 export const authenticateToken = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -36,7 +27,7 @@ export const authenticateToken = async (
       return;
     }
 
-    // Check if token is blacklisted
+    
     const revokedToken = await RevokedToken.findOne({ token });
     if (revokedToken) {
       res.status(HttpStatusCode.UNAUTHORIZED).json({
@@ -47,10 +38,9 @@ export const authenticateToken = async (
       return;
     }
 
-    // Verify token
     const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
 
-    // Check if user still exists and is active
+   
     const user = await User.findById(decoded.userId);
     
     if (!user || !user.isActive) {
@@ -62,10 +52,9 @@ export const authenticateToken = async (
       return;
     }
 
-    // Attach user information to request
     req.user = user;
     req.userId = user._id;
-    req.token = token; // Add token to request for logout functionality
+    req.token = token; 
 
     next();
   } catch (error) {
@@ -98,12 +87,7 @@ export const authenticateToken = async (
   }
 };
 
-/**
- * Require admin role middleware
- * @param req - Express request object
- * @param res - Express response object
- * @param next - Express next function
- */
+
 export const requireAdmin = (
   req: AuthenticatedRequest,
   res: Response,
@@ -121,12 +105,7 @@ export const requireAdmin = (
   next();
 };
 
-/**
- * Require moderator role or higher middleware
- * @param req - Express request object
- * @param res - Express response object
- * @param next - Express next function
- */
+
 export const requireModerator = (
   req: AuthenticatedRequest,
   res: Response,
@@ -144,13 +123,7 @@ export const requireModerator = (
   next();
 };
 
-/**
- * Optional authentication middleware
- * Attaches user info if token is provided and valid, but doesn't require it
- * @param req - Express request object
- * @param res - Express response object
- * @param next - Express next function
- */
+
 export const optionalAuth = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -167,10 +140,10 @@ export const optionalAuth = async (
       return;
     }
 
-    // Verify token
+    
     const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
 
-    // Check if user still exists and is active
+    
     const user = await User.findById(decoded.userId);
     
     if (user && user.isActive) {
@@ -180,7 +153,7 @@ export const optionalAuth = async (
 
     next();
   } catch (error) {
-    // Silently fail for optional auth
+    
     next();
   }
 };

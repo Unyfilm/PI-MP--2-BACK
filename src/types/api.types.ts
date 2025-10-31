@@ -1,13 +1,8 @@
-/**
- * Common API response interfaces and types
- */
 
 import { Request, Response, NextFunction } from 'express';
 import { IUser } from './user.types';
 
-/**
- * Standard API response interface
- */
+
 export interface ApiResponse<T = any> {
   success: boolean;
   message: string;
@@ -16,9 +11,7 @@ export interface ApiResponse<T = any> {
   timestamp: string;
 }
 
-/**
- * Paginated response interface
- */
+
 export interface PaginatedResponse<T = any> {
   success: boolean;
   message: string;
@@ -34,9 +27,7 @@ export interface PaginatedResponse<T = any> {
   timestamp: string;
 }
 
-/**
- * Error response interface
- */
+
 export interface ErrorResponse {
   success: false;
   message: string;
@@ -45,9 +36,7 @@ export interface ErrorResponse {
   timestamp: string;
 }
 
-/**
- * JWT payload interface
- */
+
 export interface JwtPayload {
   userId: string;
   email: string;
@@ -56,18 +45,14 @@ export interface JwtPayload {
   exp?: number;
 }
 
-/**
- * Authenticated request interface with all Express Request properties
- */
+
 export interface AuthenticatedRequest extends Request {
   user?: IUser;
   userId?: string;
   token?: string;
 }
 
-/**
- * Pagination query parameters
- */
+
 export interface PaginationQuery {
   page?: number;
   limit?: number;
@@ -75,9 +60,7 @@ export interface PaginationQuery {
   order?: 'asc' | 'desc';
 }
 
-/**
- * File upload interface
- */
+
 export interface FileUpload {
   fieldname: string;
   originalname: string;
@@ -87,9 +70,7 @@ export interface FileUpload {
   buffer: Buffer;
 }
 
-/**
- * HTTP status codes enumeration
- */
+
 export enum HttpStatusCode {
   OK = 200,
   CREATED = 201,
@@ -103,39 +84,36 @@ export enum HttpStatusCode {
   INTERNAL_SERVER_ERROR = 500,
 }
 
-/**
- * API endpoint paths
- */
+
 export enum ApiEndpoints {
-  // Auth routes
+ 
   AUTH_REGISTER = '/api/auth/register',
   AUTH_LOGIN = '/api/auth/login',
   AUTH_LOGOUT = '/api/auth/logout',
   AUTH_REFRESH = '/api/auth/refresh',
   AUTH_RESET_PASSWORD = '/api/auth/reset-password',
   
-  // User routes
+ 
   USER_PROFILE = '/api/users/profile',
   USER_UPDATE = '/api/users/update',
   USER_DELETE = '/api/users/delete',
   
-  // Movie routes
+  
   MOVIES_LIST = '/api/movies',
   MOVIES_DETAIL = '/api/movies/:id',
   MOVIES_SEARCH = '/api/movies/search',
   MOVIES_TRENDING = '/api/movies/trending',
   
-  // Favorites routes
+  
   FAVORITES_LIST = '/api/favorites',
   FAVORITES_ADD = '/api/favorites/:movieId',
   FAVORITES_REMOVE = '/api/favorites/:movieId',
   
-  // Ratings routes
+  
   RATINGS_ADD = '/api/ratings',
   RATINGS_UPDATE = '/api/ratings/:movieId',
   RATINGS_GET = '/api/ratings/:movieId',
   
-  // Comments routes
   COMMENTS_LIST = '/api/comments/:movieId',
   COMMENTS_CREATE = '/api/comments',
   COMMENTS_UPDATE = '/api/comments/:id',

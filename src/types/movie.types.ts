@@ -1,12 +1,8 @@
-/**
- * Movie related type definitions and interfaces
- */
+
 
 import { Document } from 'mongoose';
 
-/**
- * Movie interface for database document
- */
+
 export interface IMovie extends Document {
   _id: string;
   title: string;
@@ -33,18 +29,14 @@ export interface IMovie extends Document {
   updatedAt: Date;
 }
 
-/**
- * Movie rating interface
- */
+
 export interface MovieRating {
   average: number;
   count: number;
   distribution: RatingDistribution;
 }
 
-/**
- * Rating distribution interface
- */
+
 export interface RatingDistribution {
   1: number;
   2: number;
@@ -53,9 +45,7 @@ export interface RatingDistribution {
   5: number;
 }
 
-/**
- * Subtitle track interface
- */
+
 export interface SubtitleTrack {
   language: string;
   languageCode: string;
@@ -63,9 +53,7 @@ export interface SubtitleTrack {
   isDefault: boolean;
 }
 
-/**
- * Movie creation request interface
- */
+
 export interface CreateMovieRequest {
   title: string;
   description: string;
@@ -84,9 +72,7 @@ export interface CreateMovieRequest {
   tags: string[];
 }
 
-/**
- * Movie update request interface
- */
+
 export interface UpdateMovieRequest {
   title?: string;
   description?: string;
@@ -105,9 +91,7 @@ export interface UpdateMovieRequest {
   isActive?: boolean;
 }
 
-/**
- * Movie search filters interface
- */
+
 export interface MovieSearchFilters {
   genre?: string[];
   releaseYear?: number;
@@ -118,9 +102,7 @@ export interface MovieSearchFilters {
   sortOrder?: SortOrder;
 }
 
-/**
- * Movie sorting options enumeration
- */
+
 export enum MovieSortBy {
   TITLE = 'title',
   RELEASE_DATE = 'releaseDate',
@@ -129,9 +111,7 @@ export enum MovieSortBy {
   CREATED_AT = 'createdAt',
 }
 
-/**
- * Sort order enumeration
- */
+
 export enum SortOrder {
   ASC = 'asc',
   DESC = 'desc',

@@ -1,15 +1,7 @@
-/**
- * Script to seed the database with sample movies
- * This script adds movies with Cloudinary video IDs for testing
- */
-
 import mongoose from 'mongoose';
 import { config } from '../config/environment';
 import { Movie } from '../models/Movie';
 
-/**
- * Sample movies data with Cloudinary video IDs
- */
 const sampleMovies = [
     {
       title: "Mortal Kombat 2",
@@ -213,9 +205,7 @@ const sampleMovies = [
     }
   ];
 
-/**
- * Connect to MongoDB
- */
+
 async function connectToDatabase(): Promise<void> {
   try {
     await mongoose.connect(config.mongodbUri);
@@ -226,22 +216,19 @@ async function connectToDatabase(): Promise<void> {
   }
 }
 
-/**
- * Seed the database with sample movies
- */
+
 async function seedMovies(): Promise<void> {
   try {
     console.log('🌱 Starting to seed movies...');
 
-    // Clear existing movies (optional - remove this if you want to keep existing data)
+    
     await Movie.deleteMany({});
     console.log('🗑️ Cleared existing movies');
-
-    // Insert sample movies
+  
     const insertedMovies = await Movie.insertMany(sampleMovies);
     console.log(`✅ Successfully inserted ${insertedMovies.length} movies`);
 
-    // Display inserted movies
+    
     console.log('\n📽️ Inserted movies:');
     insertedMovies.forEach((movie, index) => {
       console.log(`${index + 1}. ${movie.title} (${movie.releaseDate.getFullYear()})`);
@@ -258,9 +245,7 @@ async function seedMovies(): Promise<void> {
   }
 }
 
-/**
- * Main function
- */
+
 async function main(): Promise<void> {
   try {
     await connectToDatabase();
@@ -275,7 +260,7 @@ async function main(): Promise<void> {
   }
 }
 
-// Run the script
+
 if (require.main === module) {
   main();
 }

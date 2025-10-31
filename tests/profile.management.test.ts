@@ -11,26 +11,25 @@ let userId: string;
 describe('Profile Management APIs', () => {
   beforeAll(async () => {
     console.log('🗄️ MongoDB Memory Server started for profile tests');
-    // Create in-memory MongoDB instance
+  
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
     
-    // Connect to in-memory database
+
     await mongoose.connect(mongoUri);
   }, 30000);
 
   afterAll(async () => {
-    // Close connection and stop MongoDB instance
+    
     await mongoose.disconnect();
     await mongoServer.stop();
     console.log('🗄️ MongoDB Memory Server stopped');
   }, 10000);
 
   beforeEach(async () => {
-    // Clear all users before each test
     await User.deleteMany({});
     
-    // Create and login a test user to get auth token
+    
     const registerRes = await request(app)
       .post('/api/auth/register')
       .send({
@@ -77,7 +76,7 @@ describe('Profile Management APIs', () => {
       expect(res.body.data).toHaveProperty('createdAt');
       expect(res.body.data).toHaveProperty('updatedAt');
       
-      // Ensure sensitive fields are not returned
+      
       expect(res.body.data).not.toHaveProperty('password');
       expect(res.body.data).not.toHaveProperty('resetPasswordToken');
       
@@ -152,7 +151,7 @@ describe('Profile Management APIs', () => {
     it('should fail with duplicate email', async () => {
       console.log('🧪 Testing update with duplicate email...');
       
-      // Create another user first
+     
       await request(app)
         .post('/api/auth/register')
         .send({
@@ -182,7 +181,7 @@ describe('Profile Management APIs', () => {
     it('should fail with duplicate username', async () => {
       console.log('🧪 Testing update with duplicate username...');
       
-      // Create another user first
+      
       await request(app)
         .post('/api/auth/register')
         .send({
@@ -325,7 +324,7 @@ describe('Profile Management APIs', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.message).toBe('Contraseña actualizada exitosamente');
       
-      // Verify new password works by logging in
+     
       const loginRes = await request(app)
         .post('/api/auth/login')
         .send({
@@ -423,7 +422,7 @@ describe('Profile Management APIs', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           currentPassword: 'ProfileTest123!',
-          // Missing newPassword and confirmPassword
+         
         });
 
       expect(res.status).toBe(400);
@@ -455,7 +454,7 @@ describe('Profile Management APIs', () => {
     it('should complete full profile management workflow', async () => {
       console.log('🧪 Testing complete profile management integration...');
       
-      // Step 1: Get initial profile
+      
       console.log('📋 Step 1: Getting initial profile...');
       const initialProfile = await request(app)
         .get('/api/users/profile')
@@ -464,7 +463,7 @@ describe('Profile Management APIs', () => {
       expect(initialProfile.status).toBe(200);
       expect(initialProfile.body.data.firstName).toBe('Profile');
       
-      // Step 2: Update profile
+      
       console.log('📝 Step 2: Updating profile information...');
       const updateProfile = await request(app)
         .put('/api/users/profile')
@@ -484,7 +483,7 @@ describe('Profile Management APIs', () => {
       expect(updateProfile.body.data.firstName).toBe('Updated');
       expect(updateProfile.body.data.fullName).toBe('Updated Integration');
       
-      // Step 3: Verify profile was updated
+      
       console.log('✔️ Step 3: Verifying profile update...');
       const verifyProfile = await request(app)
         .get('/api/users/profile')
@@ -494,7 +493,7 @@ describe('Profile Management APIs', () => {
       expect(verifyProfile.body.data.firstName).toBe('Updated');
       expect(verifyProfile.body.data.preferences.language).toBe('es');
       
-      // Step 4: Change password
+      
       console.log('🔑 Step 4: Changing password...');
       const changePassword = await request(app)
         .put('/api/users/change-password')
@@ -507,7 +506,7 @@ describe('Profile Management APIs', () => {
       
       expect(changePassword.status).toBe(200);
       
-      // Step 5: Verify new password works
+      
       console.log('🔐 Step 5: Verifying new password...');
       const loginWithNewPassword = await request(app)
         .post('/api/auth/login')

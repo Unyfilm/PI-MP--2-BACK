@@ -1,19 +1,13 @@
-/**
- * Production database setup script
- * Creates indexes and initial configuration for production MongoDB
- */
 
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-/**
- * Production database indexes and configuration
- */
+
 const setupProductionDatabase = async (): Promise<void> => {
   try {
-    // Ensure we're connecting to production database
+    
     const mongoUri = process.env.MONGODB_URI_PROD || process.env.MONGODB_URI;
     
     if (!mongoUri) {
@@ -30,7 +24,7 @@ const setupProductionDatabase = async (): Promise<void> => {
 
     const db = mongoose.connection.db!;
 
-    // Create Users collection indexes
+    
     console.log('📝 Creating Users indexes...');
     await db.collection('users').createIndex(
       { email: 1 }, 
@@ -52,7 +46,7 @@ const setupProductionDatabase = async (): Promise<void> => {
       { expireAfterSeconds: 0, background: true, name: 'reset_expires_ttl' }
     );
 
-    // Create Movies collection indexes
+    
     console.log('🎬 Creating Movies indexes...');
     await db.collection('movies').createIndex(
       { title: 'text', description: 'text' }, 
@@ -69,14 +63,14 @@ const setupProductionDatabase = async (): Promise<void> => {
       { background: true, name: 'featured_recent' }
     );
 
-    // Create Sessions collection with TTL
+    
     console.log('🔐 Creating Sessions collection...');
     await db.collection('sessions').createIndex(
       { createdAt: 1 }, 
       { expireAfterSeconds: 604800, background: true, name: 'session_ttl' } // 7 days
     );
 
-    // Verify all indexes
+    
     console.log('🔍 Verifying indexes...');
     const userIndexes = await db.collection('users').listIndexes().toArray();
     const movieIndexes = await db.collection('movies').listIndexes().toArray();
@@ -86,7 +80,7 @@ const setupProductionDatabase = async (): Promise<void> => {
     console.log(`✅ Movies collection: ${movieIndexes.length} indexes created`);
     console.log(`✅ Sessions collection: ${sessionIndexes.length} indexes created`);
 
-    // Create admin user if needed (optional)
+    
     const adminExists = await db.collection('users').findOne({ 
       email: 'admin@movieplatform.com',
       role: 'admin' 
@@ -113,7 +107,7 @@ const setupProductionDatabase = async (): Promise<void> => {
   }
 };
 
-// Run the setup
+
 if (require.main === module) {
   console.log('🚀 Starting production database setup...');
   setupProductionDatabase();

@@ -1,6 +1,3 @@
-/**
- * Migration script to generate usernames for users who don't have one
- */
 
 import mongoose from 'mongoose';
 import { User } from '../models/User';
@@ -8,12 +5,12 @@ import { config } from '../config/environment';
 
 async function migrateUsersUsername() {
   try {
-    // Connect to MongoDB
+    
     const mongoUri = config.mongodbUri;
     await mongoose.connect(mongoUri);
     console.log('✅ Connected to MongoDB for username migration');
 
-    // Find all users without username
+    
     const usersWithoutUsername = await User.find({ 
       $or: [
         { username: { $exists: false } },
@@ -29,14 +26,14 @@ async function migrateUsersUsername() {
       return;
     }
 
-    // Generate username for each user
+   
     let updatedCount = 0;
     for (const user of usersWithoutUsername) {
       try {
-        // Generate username using the method
+        
         const generatedUsername = await user.generateUsername();
         
-        // Update the user with the generated username
+        
         await User.updateOne(
           { _id: user._id },
           { $set: { username: generatedUsername } }
@@ -60,7 +57,7 @@ async function migrateUsersUsername() {
   }
 }
 
-// Run if called directly
+
 if (require.main === module) {
   migrateUsersUsername()
     .then(() => process.exit(0))

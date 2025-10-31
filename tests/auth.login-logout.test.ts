@@ -11,26 +11,25 @@ let authToken: string;
 
 describe('POST /api/auth/login & /api/auth/logout', () => {
   beforeAll(async () => {
-    // Create in-memory MongoDB instance
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
     
-    // Connect to in-memory database
+    
     await mongoose.connect(mongoUri);
   }, 30000);
 
   afterAll(async () => {
-    // Close connection and stop MongoDB instance
+    
     await mongoose.disconnect();
     await mongoServer.stop();
   }, 10000);
 
   beforeEach(async () => {
-    // Clear collections before each test
+    
     await User.deleteMany({});
     await RevokedToken.deleteMany({});
     
-    // Create a test user for login tests
+   
     testUser = await User.create({
       username: 'testuser',
       email: 'test@example.com',
@@ -56,7 +55,7 @@ describe('POST /api/auth/login & /api/auth/logout', () => {
       expect(res.body.data.user.email).toBe('test@example.com');
       expect(res.body.data.token).toBeDefined();
       
-      // Store token for logout tests
+     
       authToken = res.body.data.token;
     });
 
@@ -101,7 +100,7 @@ describe('POST /api/auth/login & /api/auth/logout', () => {
 
   describe('POST /api/auth/logout', () => {
     beforeEach(async () => {
-      // Login to get a valid token before each logout test
+      
       const loginRes = await request(app)
         .post('/api/auth/login')
         .send({
@@ -140,14 +139,14 @@ describe('POST /api/auth/login & /api/auth/logout', () => {
     });
 
     it('should invalidate token after logout', async () => {
-      // First logout
+      
       const logoutRes = await request(app)
         .post('/api/auth/logout')
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(logoutRes.status).toBe(200);
 
-      // Try to use the same token again (should fail)
+
       const retryRes = await request(app)
         .post('/api/auth/logout')
         .set('Authorization', `Bearer ${authToken}`);
@@ -157,12 +156,12 @@ describe('POST /api/auth/login & /api/auth/logout', () => {
     });
 
     it('should not allow access to protected routes after logout', async () => {
-      // First logout
+     
       await request(app)
         .post('/api/auth/logout')
         .set('Authorization', `Bearer ${authToken}`);
 
-      // Try to access protected route with revoked token
+      
       const profileRes = await request(app)
         .get('/api/users/profile')
         .set('Authorization', `Bearer ${authToken}`);

@@ -1,14 +1,9 @@
-/**
- * Validation middleware using express-validator
- */
 
 import { Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import { HttpStatusCode, ApiResponse } from '../types/api.types';
 
-/**
- * Handle validation errors
- */
+
 export const handleValidationErrors = (
   req: Request,
   res: Response,
@@ -30,9 +25,7 @@ export const handleValidationErrors = (
   next();
 };
 
-/**
- * User registration validation rules
- */
+
 export const validateUserRegistration = [
   body('username')
     .optional() // Username is now optional
@@ -69,9 +62,7 @@ export const validateUserRegistration = [
   handleValidationErrors,
 ];
 
-/**
- * User login validation rules
- */
+
 export const validateUserLogin = [
   body('email')
     .isEmail()
@@ -85,9 +76,7 @@ export const validateUserLogin = [
   handleValidationErrors,
 ];
 
-/**
- * User update validation rules
- */
+
 export const validateUserUpdate = [
   body('username')
     .optional()
@@ -121,9 +110,7 @@ export const validateUserUpdate = [
   handleValidationErrors,
 ];
 
-/**
- * Movie creation validation rules
- */
+
 export const validateMovieCreation = [
   body('title')
     .trim()
@@ -172,9 +159,7 @@ export const validateMovieCreation = [
   handleValidationErrors,
 ];
 
-/**
- * Movie update validation rules
- */
+
 export const validateMovieUpdate = [
   body('title')
     .optional()
@@ -233,9 +218,7 @@ export const validateMovieUpdate = [
   handleValidationErrors,
 ];
 
-/**
- * Rating creation and update validation rules
- */
+
 export const validateRatingCreation = [
   body('movieId')
     .notEmpty()
@@ -249,7 +232,7 @@ export const validateRatingCreation = [
     .isFloat({ min: 1, max: 5 })
     .withMessage('Rating must be a number between 1 and 5')
     .custom((value) => {
-      // Ensure rating is exactly 1, 2, 3, 4, or 5 (no decimals for star ratings)
+      
       if (![1, 2, 3, 4, 5].includes(value)) {
         throw new Error('Rating must be exactly 1, 2, 3, 4, or 5 stars');
       }
@@ -265,11 +248,9 @@ export const validateRatingCreation = [
   handleValidationErrors,
 ];
 
-/**
- * Rating query parameters validation rules
- */
+
 export const validateRatingQuery = [
-  // For route parameters
+  
   body('movieId')
     .optional()
     .isMongoId()
@@ -278,9 +259,7 @@ export const validateRatingQuery = [
   handleValidationErrors,
 ];
 
-/**
- * Rating update validation rules (for PUT endpoint)
- */
+
 export const validateRatingUpdate = [
   body('rating')
     .optional()
@@ -302,9 +281,7 @@ export const validateRatingUpdate = [
   handleValidationErrors,
 ];
 
-/**
- * Favorite creation validation rules
- */
+
 export const validateFavoriteCreation = [
   body('userId')
     .notEmpty()
@@ -332,9 +309,7 @@ export const validateFavoriteCreation = [
   handleValidationErrors,
 ];
 
-/**
- * Favorite update validation rules
- */
+
 export const validateFavoriteUpdate = [
   body('notes')
     .optional()

@@ -1,6 +1,3 @@
-/**
- * Movie controller - Handles movie-related HTTP requests
- */
 
 import { Request, Response } from 'express';
 import { Movie } from '../models/Movie';
@@ -14,11 +11,7 @@ import {
 import { ApiResponse, PaginatedResponse, AuthenticatedRequest, HttpStatusCode, PaginationQuery } from '../types/api.types';
 import { cloudinaryService } from '../services/cloudinaryService';
 
-/**
- * Get all movies with pagination and filters
- * @route GET /api/movies
- * @access Public
- */
+
 export const getMovies = async (req: Request, res: Response): Promise<void> => {
   try {
     const {
@@ -60,11 +53,11 @@ export const getMovies = async (req: Request, res: Response): Promise<void> => {
       filter.director = new RegExp(director, 'i');
     }
 
-    // Calculate pagination
+    
     const skip = (Number(page) - 1) * Number(limit);
     const sortOrder = order === 'asc' ? 1 : -1;
 
-    // Execute query
+    
     const [movies, totalItems] = await Promise.all([
       Movie.find(filter)
         .sort({ [sort]: sortOrder })
@@ -102,11 +95,7 @@ export const getMovies = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-/**
- * Get movie by ID
- * @route GET /api/movies/:id
- * @access Public
- */
+
 export const getMovieById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -122,7 +111,7 @@ export const getMovieById = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Increment view count
+    
     await Movie.findByIdAndUpdate(id, { $inc: { views: 1 } });
 
     res.status(HttpStatusCode.OK).json({
@@ -142,11 +131,7 @@ export const getMovieById = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-/**
- * Search movies
- * @route GET /api/movies/search
- * @access Public
- */
+
 export const searchMovies = async (req: Request, res: Response): Promise<void> => {
   try {
     const { q: query, limit = 20 } = req.query;
@@ -179,11 +164,7 @@ export const searchMovies = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-/**
- * Get trending movies
- * @route GET /api/movies/trending
- * @access Public
- */
+
 export const getTrendingMovies = async (req: Request, res: Response): Promise<void> => {
   try {
     const { limit = 10 } = req.query;
@@ -207,11 +188,7 @@ export const getTrendingMovies = async (req: Request, res: Response): Promise<vo
   }
 };
 
-/**
- * Create new movie (Admin only)
- * @route POST /api/movies
- * @access Private/Admin
- */
+
 export const createMovie = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const movieData: CreateMovieRequest = req.body;
@@ -236,11 +213,7 @@ export const createMovie = async (req: AuthenticatedRequest, res: Response): Pro
   }
 };
 
-/**
- * Update movie (Admin only)
- * @route PUT /api/movies/:id
- * @access Private/Admin
- */
+
 export const updateMovie = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -278,16 +251,12 @@ export const updateMovie = async (req: AuthenticatedRequest, res: Response): Pro
   }
 };
 
-/**
- * Delete movie (Admin only)
- * @route DELETE /api/movies/:id
- * @access Private/Admin
- */
+
 export const deleteMovie = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
-    // Soft delete by setting isActive to false
+    
     const movie = await Movie.findByIdAndUpdate(
       id,
       { isActive: false },
@@ -319,11 +288,7 @@ export const deleteMovie = async (req: AuthenticatedRequest, res: Response): Pro
   }
 };
 
-/**
- * Get movie video URL (signed URL from Cloudinary)
- * @route GET /api/movies/:id/video
- * @access Public
- */
+
 export const getMovieVideo = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -349,7 +314,7 @@ export const getMovieVideo = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Generate signed URL with transformations
+    
     const signedUrl = cloudinaryService.generateSignedVideoUrl(movie.cloudinaryVideoId, {
       duration: Number(duration),
       transformation: {
@@ -383,11 +348,7 @@ export const getMovieVideo = async (req: Request, res: Response): Promise<void> 
   }
 };
 
-/**
- * Get movie video info (duration, dimensions, etc.)
- * @route GET /api/movies/:id/video/info
- * @access Public
- */
+
 export const getMovieVideoInfo = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -412,7 +373,7 @@ export const getMovieVideoInfo = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    // Get video info from Cloudinary
+    
     const videoInfo = await cloudinaryService.getVideoInfo(movie.cloudinaryVideoId);
 
     res.status(HttpStatusCode.OK).json({

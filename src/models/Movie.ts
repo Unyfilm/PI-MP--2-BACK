@@ -1,7 +1,3 @@
-/**
- * Movie model definition for MongoDB
- */
-
 import mongoose, { Schema } from 'mongoose';
 import { 
   IMovie, 
@@ -11,9 +7,7 @@ import {
   MovieSortBy 
 } from '../types/movie.types';
 
-/**
- * Rating distribution schema
- */
+
 const ratingDistributionSchema = new Schema<RatingDistribution>({
   1: { type: Number, default: 0 },
   2: { type: Number, default: 0 },
@@ -22,9 +16,7 @@ const ratingDistributionSchema = new Schema<RatingDistribution>({
   5: { type: Number, default: 0 },
 }, { _id: false });
 
-/**
- * Movie rating schema
- */
+
 const movieRatingSchema = new Schema<MovieRating>({
   average: {
     type: Number,
@@ -43,9 +35,7 @@ const movieRatingSchema = new Schema<MovieRating>({
   },
 }, { _id: false });
 
-/**
- * Subtitle track schema
- */
+
 const subtitleTrackSchema = new Schema<SubtitleTrack>({
   language: {
     type: String,
@@ -67,9 +57,7 @@ const subtitleTrackSchema = new Schema<SubtitleTrack>({
   },
 }, { _id: false });
 
-/**
- * Movie schema definition
- */
+
 const movieSchema = new Schema<IMovie>({
   title: {
     type: String,
@@ -168,9 +156,7 @@ const movieSchema = new Schema<IMovie>({
   toObject: { virtuals: true },
 });
 
-/**
- * Indexes for better query performance
- */
+
 movieSchema.index({ title: 'text', description: 'text', synopsis: 'text' });
 movieSchema.index({ genre: 1 });
 movieSchema.index({ releaseDate: -1 });
@@ -178,9 +164,7 @@ movieSchema.index({ 'rating.average': -1 });
 movieSchema.index({ views: -1 });
 movieSchema.index({ isActive: 1 });
 
-/**
- * Virtual for formatted duration
- */
+
 movieSchema.virtual('formattedDuration').get(function(this: any) {
   if (!this.duration || this.duration <= 0) {
     return 'N/A';
@@ -190,25 +174,19 @@ movieSchema.virtual('formattedDuration').get(function(this: any) {
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 });
 
-/**
- * Virtual for release year
- */
+
 movieSchema.virtual('releaseYear').get(function(this: any) {
   return this.releaseDate ? this.releaseDate.getFullYear() : null;
 });
 
-/**
- * Static method to get trending movies
- */
+
 movieSchema.statics.getTrending = function(limit = 10) {
   return this.find({ isActive: true })
     .sort({ views: -1, 'rating.average': -1 })
     .limit(limit);
 };
 
-/**
- * Static method to search movies
- */
+
 movieSchema.statics.searchMovies = function(query: string, options: any = {}) {
   const searchQuery = {
     $text: { $search: query },
@@ -220,15 +198,11 @@ movieSchema.statics.searchMovies = function(query: string, options: any = {}) {
     .limit(options.limit || 20);
 };
 
-/**
- * Movie model interface with static methods
- */
+
 interface IMovieModel extends mongoose.Model<IMovie> {
   getTrending(limit?: number): Promise<IMovie[]>;
   searchMovies(query: string, options?: any): Promise<IMovie[]>;
 }
 
-/**
- * Movie model
- */
+
 export const Movie = mongoose.model<IMovie, IMovieModel>('Movie', movieSchema);

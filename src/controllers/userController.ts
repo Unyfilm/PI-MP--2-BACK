@@ -1,7 +1,3 @@
-/**
- * User controller - Handles user-related HTTP requests
- */
-
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
@@ -19,22 +15,13 @@ import { generateToken } from '../utils/auth.utils';
 import { validateEmail, validatePassword } from '../utils/validation.utils';
 import { config } from '../config/environment';
 
-/**
- * Register a new user
- * Handles POST /api/auth/register
- *
- * @route POST /api/auth/register
- * @access Public
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
+
 export const registerUser = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Accept confirmPassword from body
+   
     const { username, email, password, confirmPassword, firstName, lastName, age } = req.body;
 
-    // Validate input (username is now optional)
+    
     if (!email || !password || !confirmPassword || !firstName || !lastName || !age) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -44,7 +31,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Validate email format (específico)
+    
     if (typeof email !== 'string' || !validateEmail(email)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -54,7 +41,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Validate password strength (específico)
+    
     if (typeof password !== 'string' || !validatePassword(password)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -64,7 +51,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Confirm password match
+    
     if (password !== confirmPassword) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -74,7 +61,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Check if user already exists
+    
     const existingConditions: any[] = [{ email }];
     if (username) {
       existingConditions.push({ username });
@@ -100,7 +87,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Validate age
+    
     if (typeof age !== 'number' || age < 13 || age > 120 || !Number.isInteger(age)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -110,7 +97,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Create new user
+    
     const user = new User({
       username: username || undefined, // Explicitly set to undefined if not provided
       email,
@@ -120,14 +107,14 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       age,
     });
 
-    // Generate username if not provided
+    
     if (!username) {
       user.username = await user.generateUsername();
     }
 
     await user.save();
 
-    // Registration successful, do not auto-login, just respond
+    
     res.status(HttpStatusCode.CREATED).json({
       success: true,
       message: 'Registro exitoso',
@@ -154,16 +141,12 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-/**
- * Login user
- * @route POST /api/auth/login
- * @access Public
- */
+
 export const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password }: LoginUserRequest = req.body;
 
-    // Validate input
+    
     if (!email || !password) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -173,7 +156,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Find user by email and include password
+    
     const user = await User.findOne({ email }).select('+password');
 
     if (!user || !user.isActive) {
@@ -185,7 +168,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Check password
+    
     const isPasswordValid = await user.comparePassword(password);
 
     if (!isPasswordValid) {
@@ -197,7 +180,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Generate JWT token
+    
     const token = generateToken(user._id, user.email, user.role);
 
     res.status(HttpStatusCode.OK).json({
@@ -229,15 +212,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-/**
- * Get user profile
- * Retrieves the authenticated user's profile information
- * @route GET /api/users/profile
- * @access Private
- * @param {AuthenticatedRequest} req - Express request object with authenticated user
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
+
 export const getUserProfile = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId;
@@ -292,15 +267,7 @@ export const getUserProfile = async (req: AuthenticatedRequest, res: Response): 
   }
 };
 
-/**
- * Update user profile
- * Updates the authenticated user's profile information with validation
- * @route PUT /api/users/profile
- * @access Private
- * @param {AuthenticatedRequest} req - Express request object with authenticated user and update data
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
+
 export const updateUserProfile = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId;
@@ -315,7 +282,7 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
       return;
     }
 
-    // Validate input fields
+    
     if (!updateData || Object.keys(updateData).length === 0) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -325,11 +292,11 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
       return;
     }
 
-    // Define allowed fields for profile update
+    
     const allowedFields = ['username', 'firstName', 'lastName', 'age', 'email', 'profilePicture', 'preferences'];
     const filteredUpdateData: any = {};
 
-    // Filter and validate each field
+    
     for (const key of Object.keys(updateData)) {
       if (allowedFields.includes(key)) {
         const value = updateData[key as keyof UpdateUserRequest];
@@ -339,7 +306,7 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
           continue;
         }
 
-        // Validate specific fields
+        
         if (key === 'email' && value) {
           if (!validateEmail(value as string)) {
             res.status(HttpStatusCode.BAD_REQUEST).json({
@@ -350,7 +317,7 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
             return;
           }
 
-          // Check if email is already taken by another user
+          
           const existingUser = await User.findOne({ 
             email: value, 
             _id: { $ne: userId },
@@ -368,7 +335,7 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
         }
 
         if (key === 'username' && value) {
-          // Validate username format
+        
           if (typeof value === 'string' && value.length < 3) {
             res.status(HttpStatusCode.BAD_REQUEST).json({
               success: false,
@@ -378,7 +345,7 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
             return;
           }
 
-          // Check if username is already taken
+          
           const existingUser = await User.findOne({ 
             username: value, 
             _id: { $ne: userId },
@@ -441,7 +408,7 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
       return;
     }
 
-    // Update user with validation
+    
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { 
@@ -485,7 +452,7 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
   } catch (error: any) {
     console.error('Update user profile error:', error);
     
-    // Handle mongoose validation errors
+    
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map((err: any) => err.message);
       res.status(HttpStatusCode.BAD_REQUEST).json({
@@ -497,7 +464,7 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
       return;
     }
 
-    // Handle duplicate key errors
+    
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
       let message = 'Este valor ya está en uso';
@@ -525,15 +492,7 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
   }
 };
 
-/**
- * Change user password
- * Updates the authenticated user's password with security validation
- * @route PUT /api/users/change-password
- * @access Private
- * @param {AuthenticatedRequest} req - Express request object with authenticated user and password data
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
+
 export const changeUserPassword = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId;
@@ -548,7 +507,7 @@ export const changeUserPassword = async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
-    // Validate input
+    
     if (!currentPassword || !newPassword || !confirmPassword) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -558,7 +517,7 @@ export const changeUserPassword = async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
-    // Validate new password confirmation
+  
     if (newPassword !== confirmPassword) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -568,7 +527,7 @@ export const changeUserPassword = async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
-    // Validate new password strength
+    
     if (!validatePassword(newPassword)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -578,7 +537,7 @@ export const changeUserPassword = async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
-    // Find user and verify current password
+    
     const user = await User.findById(userId).select('+password');
     if (!user || !user.isActive) {
       res.status(HttpStatusCode.NOT_FOUND).json({
@@ -589,7 +548,7 @@ export const changeUserPassword = async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
-    // Verify current password
+    
     const isCurrentPasswordValid = await user.comparePassword(currentPassword);
     if (!isCurrentPasswordValid) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
@@ -600,7 +559,7 @@ export const changeUserPassword = async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
-    // Check if new password is different from current
+    
     const isSamePassword = await user.comparePassword(newPassword);
     if (isSamePassword) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
@@ -611,7 +570,7 @@ export const changeUserPassword = async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
-    // Update password (will be hashed by pre-save middleware)
+    
     user.password = newPassword;
     user.updatedAt = new Date();
     await user.save({ validateModifiedOnly: true });
@@ -633,39 +592,7 @@ export const changeUserPassword = async (req: AuthenticatedRequest, res: Respons
   }
 };
 
-/**
- * Delete user account - Permanently removes user data from database
- * Handles DELETE /api/users/account endpoint for US-5 - Eliminar cuenta
- * 
- * This endpoint completely removes the user's account and all associated data
- * from the database. Once deleted, the account cannot be recovered.
- * 
- * @route DELETE /api/users/account
- * @access Private - Requires valid JWT authentication token
- * @param {AuthenticatedRequest} req - Express request object with authenticated user data
- * @param {Response} res - Express response object
- * @returns {Promise<void>} JSON response indicating success/failure of account deletion
- * 
- * @example
- * // Success Response
- * {
- *   "success": true,
- *   "message": "Cuenta eliminada exitosamente",
- *   "data": {
- *     "redirectTo": "/register",
- *     "message": "Cuenta eliminada"
- *   },
- *   "timestamp": "2025-01-01T12:00:00.000Z"
- * }
- * 
- * @example
- * // Error Response
- * {
- *   "success": false,
- *   "message": "Usuario no encontrado",
- *   "timestamp": "2025-01-01T12:00:00.000Z"
- * }
- */
+
 export const deleteUserAccount = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId;
@@ -679,7 +606,6 @@ export const deleteUserAccount = async (req: AuthenticatedRequest, res: Response
       return;
     }
 
-    // Find the user first to ensure they exist
     const user = await User.findById(userId);
     
     if (!user || !user.isActive) {
@@ -691,12 +617,12 @@ export const deleteUserAccount = async (req: AuthenticatedRequest, res: Response
       return;
     }
 
-    // Permanently delete user data from database (hard delete)
+    
     await User.findByIdAndDelete(userId);
 
     console.log(`User account deleted successfully: ${user.email} (ID: ${userId})`);
 
-    // Response with redirect information for frontend
+    
     res.status(HttpStatusCode.OK).json({
       success: true,
       message: 'Cuenta eliminada exitosamente',
@@ -723,16 +649,7 @@ export const deleteUserAccount = async (req: AuthenticatedRequest, res: Response
   }
 };
 
-/**
- * Logout user - Invalidates session/token
- * Handles POST /api/auth/logout
- *
- * @route POST /api/auth/logout
- * @access Private
- * @param {AuthenticatedRequest} req - Express request object with user authentication
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
+
 export const logoutUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const token = req.token;
@@ -746,11 +663,11 @@ export const logoutUser = async (req: AuthenticatedRequest, res: Response): Prom
       return;
     }
 
-    // Decode token to get expiration time
+    
     const decoded = jwt.decode(token) as any;
     const expiresAt = new Date(decoded.exp * 1000); // Convert from seconds to milliseconds
 
-    // Add token to blacklist
+    
     await RevokedToken.create({
       token,
       expiresAt,
@@ -775,21 +692,12 @@ export const logoutUser = async (req: AuthenticatedRequest, res: Response): Prom
   }
 };
 
-/**
- * Request password reset - Send reset token to user's email
- * Handles POST /api/auth/forgot-password
- *
- * @route POST /api/auth/forgot-password
- * @access Public
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
+
 export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email }: ResetPasswordRequest = req.body;
 
-    // Validate input
+    
     if (!email) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -799,7 +707,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Validate email format
+    
     if (!validateEmail(email)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -809,25 +717,24 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Find user by email
+    
     const user = await User.findOne({ email });
     
-    // Always return success for security (don't reveal if email exists)
-    // But only process if user actually exists
+    
     if (user && user.isActive) {
-      // Generate reset token (valid for 1 hour)
+      
       const resetToken = jwt.sign(
         { userId: user._id, email: user.email },
         config.jwtSecret,
         { expiresIn: '1h' }
       );
 
-      // Save token to user document
+      
       user.resetPasswordToken = resetToken;
       user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
       await user.save({ validateModifiedOnly: true });
 
-      // Send reset email
+      
       const resetLink = `${config.clientUrl}/reset-password?token=${resetToken}`;
       
       try {
@@ -843,7 +750,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       }
     }
 
-    // Always return success response for security
+    
     res.status(HttpStatusCode.OK).json({
       success: true,
       message: 'Si el email existe en nuestro sistema, recibirás un enlace para restablecer tu contraseña',
@@ -861,21 +768,12 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
   }
 };
 
-/**
- * Reset password using valid token
- * Handles POST /api/auth/reset-password
- *
- * @route POST /api/auth/reset-password
- * @access Public
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
+
 export const resetPassword = async (req: Request, res: Response): Promise<void> => {
   try {
     const { token, password, confirmPassword } = req.body;
 
-    // Validate input
+    
     if (!token || !password || !confirmPassword) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -885,7 +783,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Validate password strength
+    
     if (!validatePassword(password)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -895,7 +793,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Confirm passwords match
+    
     if (password !== confirmPassword) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -905,7 +803,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Verify token
+    
     let decoded: any;
     try {
       decoded = jwt.verify(token, config.jwtSecret);
@@ -918,7 +816,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Find user with valid reset token
+    
     const user = await User.findOne({
       _id: decoded.userId,
       resetPasswordToken: token,
@@ -935,8 +833,8 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Update password and clear reset fields
-    user.password = password; // Will be hashed by pre-save hook
+    
+    user.password = password; 
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save({ validateModifiedOnly: true });

@@ -1,17 +1,8 @@
-/**
- * Response utilities for consistent API responses
- */
 
 import { Response } from 'express';
 import { ApiResponse, PaginatedResponse, ErrorResponse, HttpStatusCode } from '../types/api.types';
 
-/**
- * Send success response
- * @param res - Express response object
- * @param message - Success message
- * @param data - Response data
- * @param statusCode - HTTP status code (default: 200)
- */
+
 export const sendSuccess = <T>(
   res: Response,
   message: string,
@@ -26,14 +17,7 @@ export const sendSuccess = <T>(
   } as ApiResponse<T>);
 };
 
-/**
- * Send error response
- * @param res - Express response object
- * @param message - Error message
- * @param error - Error details
- * @param statusCode - HTTP status code (default: 500)
- * @param details - Additional error details
- */
+
 export const sendError = (
   res: Response,
   message: string,
@@ -50,16 +34,7 @@ export const sendError = (
   } as ErrorResponse);
 };
 
-/**
- * Send paginated response
- * @param res - Express response object
- * @param message - Success message
- * @param data - Array of data items
- * @param currentPage - Current page number
- * @param totalPages - Total number of pages
- * @param totalItems - Total number of items
- * @param itemsPerPage - Number of items per page
- */
+
 export const sendPaginatedResponse = <T>(
   res: Response,
   message: string,
@@ -85,11 +60,7 @@ export const sendPaginatedResponse = <T>(
   } as PaginatedResponse<T>);
 };
 
-/**
- * Send not found response
- * @param res - Express response object
- * @param resource - Name of the resource that was not found
- */
+
 export const sendNotFound = (res: Response, resource: string = 'Resource'): void => {
   sendError(
     res,
@@ -99,12 +70,6 @@ export const sendNotFound = (res: Response, resource: string = 'Resource'): void
   );
 };
 
-/**
- * Send validation error response
- * @param res - Express response object
- * @param message - Validation error message
- * @param details - Validation error details
- */
 export const sendValidationError = (res: Response, message: string, details?: any): void => {
   sendError(
     res,
@@ -115,11 +80,7 @@ export const sendValidationError = (res: Response, message: string, details?: an
   );
 };
 
-/**
- * Send unauthorized response
- * @param res - Express response object
- * @param message - Unauthorized message
- */
+
 export const sendUnauthorized = (res: Response, message: string = 'Unauthorized'): void => {
   sendError(
     res,
@@ -129,11 +90,7 @@ export const sendUnauthorized = (res: Response, message: string = 'Unauthorized'
   );
 };
 
-/**
- * Send forbidden response
- * @param res - Express response object
- * @param message - Forbidden message
- */
+
 export const sendForbidden = (res: Response, message: string = 'Forbidden'): void => {
   sendError(
     res,

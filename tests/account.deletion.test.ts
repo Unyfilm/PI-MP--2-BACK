@@ -11,26 +11,26 @@ let userId: string;
 describe('DELETE /api/users/account - Account Deletion', () => {
   beforeAll(async () => {
     console.log('🗄️ MongoDB Memory Server started for account deletion tests');
-    // Create in-memory MongoDB instance
+    
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
     
-    // Connect to in-memory database
+    
     await mongoose.connect(mongoUri);
   }, 30000);
 
   afterAll(async () => {
-    // Close connection and stop MongoDB instance
+    
     await mongoose.disconnect();
     await mongoServer.stop();
     console.log('🗄️ MongoDB Memory Server stopped');
   }, 10000);
 
   beforeEach(async () => {
-    // Clear all users before each test
+    
     await User.deleteMany({});
     
-    // Create and login a test user to get auth token
+    
     const registerRes = await request(app)
       .post('/api/auth/register')
       .send({
@@ -79,23 +79,23 @@ describe('DELETE /api/users/account - Account Deletion', () => {
     it('should permanently delete user data from database (hard delete)', async () => {
       console.log('🧪 Testing hard delete verification...');
       
-      // Verify user exists before deletion
+      
       const userBefore = await User.findById(userId);
       expect(userBefore).toBeTruthy();
       expect(userBefore?.email).toBe('delete.test@movieplatform.com');
 
-      // Delete account
+      
       const deleteRes = await request(app)
         .delete('/api/users/account')
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(deleteRes.status).toBe(200);
 
-      // Verify user is completely removed from database (hard delete)
+      
       const userAfter = await User.findById(userId);
       expect(userAfter).toBeNull();
 
-      // Verify user count in database is 0
+      
       const userCount = await User.countDocuments();
       expect(userCount).toBe(0);
 
@@ -105,14 +105,14 @@ describe('DELETE /api/users/account - Account Deletion', () => {
     it('should prevent login after account deletion', async () => {
       console.log('🧪 Testing login prevention after deletion...');
       
-      // Delete account
+      
       const deleteRes = await request(app)
         .delete('/api/users/account')
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(deleteRes.status).toBe(200);
 
-      // Try to login with deleted account credentials
+     
       const loginRes = await request(app)
         .post('/api/auth/login')
         .send({
@@ -158,12 +158,12 @@ describe('DELETE /api/users/account - Account Deletion', () => {
     it('should fail when user already deleted (not found)', async () => {
       console.log('🧪 Testing deletion of non-existent user...');
       
-      // First delete the account
+      
       await request(app)
         .delete('/api/users/account')
         .set('Authorization', `Bearer ${authToken}`);
 
-      // Try to delete again with same token (user no longer exists)
+      
       const res = await request(app)
         .delete('/api/users/account')
         .set('Authorization', `Bearer ${authToken}`);
@@ -179,7 +179,7 @@ describe('DELETE /api/users/account - Account Deletion', () => {
     it('should complete full account lifecycle with deletion', async () => {
       console.log('🧪 Testing complete account lifecycle...');
       
-      // Step 1: Verify account exists and can access profile
+      
       console.log('📋 Step 1: Verifying account access...');
       const profileRes = await request(app)
         .get('/api/users/profile')
@@ -188,7 +188,6 @@ describe('DELETE /api/users/account - Account Deletion', () => {
       expect(profileRes.status).toBe(200);
       expect(profileRes.body.data.email).toBe('delete.test@movieplatform.com');
 
-      // Step 2: Delete account
       console.log('🗑️ Step 2: Deleting account...');
       const deleteRes = await request(app)
         .delete('/api/users/account')
@@ -197,7 +196,7 @@ describe('DELETE /api/users/account - Account Deletion', () => {
       expect(deleteRes.status).toBe(200);
       expect(deleteRes.body.data.redirectTo).toBe('/register');
 
-      // Step 3: Verify account no longer accessible
+      
       console.log('🔒 Step 3: Verifying account inaccessible...');
       const profileAfterRes = await request(app)
         .get('/api/users/profile')
@@ -205,13 +204,13 @@ describe('DELETE /api/users/account - Account Deletion', () => {
       
       expect(profileAfterRes.status).toBe(401);
 
-      // Step 4: Verify registration with same email is possible (complete cleanup)
+      
       console.log('🔄 Step 4: Verifying email reuse possible...');
       const reregisterRes = await request(app)
         .post('/api/auth/register')
         .send({
           username: 'newuser',
-          email: 'delete.test@movieplatform.com', // Same email
+          email: 'delete.test@movieplatform.com', 
           password: 'NewPassword123!',
           confirmPassword: 'NewPassword123!',
           firstName: 'New',

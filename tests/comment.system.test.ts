@@ -1,7 +1,3 @@
-/**
- * Comment System Tests
- * Tests for movie comment functionality including CRUD operations and permissions
- */
 
 import request from 'supertest';
 import mongoose from 'mongoose';
@@ -21,23 +17,23 @@ let adminToken: string;
 
 describe('Comment System Tests', () => {
   beforeAll(async () => {
-    // Create in-memory MongoDB instance
+   
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
     
-    // Connect to in-memory database
+    
     await mongoose.connect(mongoUri);
   }, 30000);
 
   afterEach(async () => {
-    // Clean up any pending operations
+    
     if (mongoose.connection.readyState === 1) {
       await mongoose.connection.db.dropDatabase();
     }
   });
 
   afterAll(async () => {
-    // Close connection and stop MongoDB instance
+    
     if (mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();
     }
@@ -47,12 +43,11 @@ describe('Comment System Tests', () => {
   }, 10000);
 
   beforeEach(async () => {
-    // Clear all collections before each test
     await User.deleteMany({});
     await Movie.deleteMany({});
     await Comment.deleteMany({});
 
-    // Create test users
+    
     const user1Response = await request(app)
       .post('/api/auth/register')
       .send({
@@ -75,7 +70,7 @@ describe('Comment System Tests', () => {
         age: 30,
       });
 
-    // Create admin user through registration endpoint to ensure password is hashed
+    
     await request(app)
       .post('/api/auth/register')
       .send({
@@ -87,13 +82,13 @@ describe('Comment System Tests', () => {
         age: 35,
       });
 
-    // Update admin role directly in database after registration
+    
     await User.updateOne(
       { email: 'admin@test.com' },
       { role: 'admin' }
     );
 
-    // Login users to get tokens
+  
     const loginUser1 = await request(app)
       .post('/api/auth/login')
       .send({
@@ -122,7 +117,7 @@ describe('Comment System Tests', () => {
     testUser1 = loginUser1.body.data.user;
     testUser2 = loginUser2.body.data.user;
 
-    // Create test movie
+    
     const movieResponse = await request(app)
       .post('/api/movies')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -143,7 +138,7 @@ describe('Comment System Tests', () => {
 
     testMovie = movieResponse.body.data;
     
-    // Verify test setup was successful
+    
     if (!testMovie || !testMovie._id) {
       console.error('Movie creation failed:', movieResponse.body);
       throw new Error('Test movie creation failed - check admin user creation and authentication');
@@ -235,7 +230,7 @@ describe('Comment System Tests', () => {
 
   describe('GET /api/comments/movie/:movieId - Get Movie Comments (Authenticated)', () => {
     beforeEach(async () => {
-      // Create some test comments
+    
       await request(app)
         .post('/api/comments')
         .set('Authorization', `Bearer ${authToken1}`)
@@ -287,7 +282,7 @@ describe('Comment System Tests', () => {
 
   describe('GET /api/comments/me - Get My Comments', () => {
     beforeEach(async () => {
-      // Create test comments for user 1
+      
       await request(app)
         .post('/api/comments')
         .set('Authorization', `Bearer ${authToken1}`)
@@ -331,7 +326,7 @@ describe('Comment System Tests', () => {
 
   describe('PUT /api/comments/:commentId - Update Comment', () => {
     it('should update own comment successfully', async () => {
-      // Create a test comment
+      
       const commentResponse = await request(app)
         .post('/api/comments')
         .set('Authorization', `Bearer ${authToken1}`)
@@ -357,7 +352,7 @@ describe('Comment System Tests', () => {
     });
 
     it('should fail to update another users comment', async () => {
-      // Create a test comment with user1
+      
       const commentResponse = await request(app)
         .post('/api/comments')
         .set('Authorization', `Bearer ${authToken1}`)
@@ -382,7 +377,7 @@ describe('Comment System Tests', () => {
     });
 
     it('should fail without authentication', async () => {
-      // Create a test comment
+      
       const commentResponse = await request(app)
         .post('/api/comments')
         .set('Authorization', `Bearer ${authToken1}`)
@@ -408,7 +403,7 @@ describe('Comment System Tests', () => {
 
   describe('DELETE /api/comments/:commentId - Delete Comment', () => {
     it('should delete own comment successfully', async () => {
-      // Create a test comment
+      
       const commentResponse = await request(app)
         .post('/api/comments')
         .set('Authorization', `Bearer ${authToken1}`)
@@ -428,7 +423,7 @@ describe('Comment System Tests', () => {
     });
 
     it('should allow admin to delete any comment', async () => {
-      // Create a test comment with regular user
+      
       const commentResponse = await request(app)
         .post('/api/comments')
         .set('Authorization', `Bearer ${authToken1}`)
@@ -448,7 +443,7 @@ describe('Comment System Tests', () => {
     });
 
     it('should fail to delete another users comment', async () => {
-      // Create a test comment with user1
+    
       const commentResponse = await request(app)
         .post('/api/comments')
         .set('Authorization', `Bearer ${authToken1}`)
@@ -468,7 +463,7 @@ describe('Comment System Tests', () => {
     });
 
     it('should fail without authentication', async () => {
-      // Create a test comment
+      
       const commentResponse = await request(app)
         .post('/api/comments')
         .set('Authorization', `Bearer ${authToken1}`)
@@ -489,7 +484,7 @@ describe('Comment System Tests', () => {
 
   describe('GET /api/comments/public/movie/:movieId - Public Movie Comments', () => {
     beforeEach(async () => {
-      // Create some test comments
+      
       await request(app)
         .post('/api/comments')
         .set('Authorization', `Bearer ${authToken1}`)

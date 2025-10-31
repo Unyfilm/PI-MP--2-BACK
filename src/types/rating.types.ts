@@ -1,47 +1,34 @@
-/**
- * Rating related type definitions and interfaces
- */
 
 import { Document } from 'mongoose';
 
-/**
- * Rating interface for database document
- * Represents an individual user rating for a movie
- */
+
 export interface IRating extends Document {
   _id: string;
   userId: string;
   movieId: string;
-  rating: number; // 1-5 stars
-  review: string; // Optional text review
+  rating: number; 
+  review: string; 
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
   
-  // Instance methods
+  
   validateRating(): boolean;
 }
 
-/**
- * Rating creation request interface
- */
+
 export interface CreateRatingRequest {
   movieId: string;
-  rating: number; // 1-5 stars
-  review?: string; // Optional review text
+  rating: number; 
+  review?: string; 
 }
 
-/**
- * Rating update request interface
- */
 export interface UpdateRatingRequest {
-  rating?: number; // 1-5 stars
-  review?: string; // Optional review text
+  rating?: number; 
+  review?: string; 
 }
 
-/**
- * Rating response interface for API responses
- */
+
 export interface RatingResponse {
   id: string;
   userId: string;
@@ -52,9 +39,7 @@ export interface RatingResponse {
   updatedAt: Date;
 }
 
-/**
- * Movie rating statistics interface
- */
+
 export interface MovieRatingStats {
   average: number;
   count: number;
@@ -67,9 +52,7 @@ export interface MovieRatingStats {
   };
 }
 
-/**
- * User rating with movie details interface
- */
+
 export interface UserRatingWithMovie {
   id: string;
   rating: number;
@@ -84,9 +67,7 @@ export interface UserRatingWithMovie {
   };
 }
 
-/**
- * Rating query parameters interface
- */
+
 export interface RatingQueryParams {
   page?: number;
   limit?: number;
