@@ -51,7 +51,6 @@ const favoriteSchema = new Schema<IFavorite>({
   toObject: { virtuals: true }
 });
 
-// Índice compuesto único para evitar duplicados (solo activos)
 favoriteSchema.index(
   { userId: 1, movieId: 1 }, 
   { 
@@ -60,10 +59,8 @@ favoriteSchema.index(
   }
 );
 
-// Índice para consultas filtradas por fecha
 favoriteSchema.index({ createdAt: 1 });
 
-// Middleware para soft delete
 favoriteSchema.pre(['find', 'findOne', 'findOneAndUpdate'], function() {
   this.where({ isActive: { $ne: false } });
 });

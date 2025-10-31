@@ -12,13 +12,12 @@ export interface IRating extends Document {
   _id: string;
   userId: string;
   movieId: string;
-  rating: number; // 1-5 stars
-  review: string; // Optional text review
+  rating: number; 
+  review: string; 
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
   
-  // Instance methods
   validateRating(): boolean;
 }
 
@@ -27,16 +26,16 @@ export interface IRating extends Document {
  */
 export interface CreateRatingRequest {
   movieId: string;
-  rating: number; // 1-5 stars
-  review?: string; // Optional review text
+  rating: number; 
+  review?: string;
 }
 
 /**
  * Rating update request interface
  */
 export interface UpdateRatingRequest {
-  rating?: number; // 1-5 stars
-  review?: string; // Optional review text
+  rating?: number; 
+  review?: string;
 }
 
 /**

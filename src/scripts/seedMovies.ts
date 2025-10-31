@@ -233,15 +233,12 @@ async function seedMovies(): Promise<void> {
   try {
     console.log('🌱 Starting to seed movies...');
 
-    // Clear existing movies (optional - remove this if you want to keep existing data)
     await Movie.deleteMany({});
     console.log('🗑️ Cleared existing movies');
 
-    // Insert sample movies
     const insertedMovies = await Movie.insertMany(sampleMovies);
     console.log(`✅ Successfully inserted ${insertedMovies.length} movies`);
 
-    // Display inserted movies
     console.log('\n📽️ Inserted movies:');
     insertedMovies.forEach((movie, index) => {
       console.log(`${index + 1}. ${movie.title} (${movie.releaseDate.getFullYear()})`);
@@ -275,7 +272,6 @@ async function main(): Promise<void> {
   }
 }
 
-// Run the script
 if (require.main === module) {
   main();
 }

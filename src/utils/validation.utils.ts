@@ -47,7 +47,7 @@ export const validateUsername = (username: string): boolean => {
  * @returns Boolean indicating if duration is valid
  */
 export const validateMovieDuration = (duration: number): boolean => {
-  return Number.isInteger(duration) && duration > 0 && duration <= 1000; // Max 1000 minutes (~16.5 hours)
+  return Number.isInteger(duration) && duration > 0 && duration <= 1000; 
 };
 
 /**
@@ -108,7 +108,7 @@ export const sanitizeString = (input: string): string => {
  */
 export const validatePagination = (page?: number, limit?: number) => {
   const validatedPage = Math.max(1, page || 1);
-  const validatedLimit = Math.min(Math.max(1, limit || 20), 100); // Max 100 items per page
+  const validatedLimit = Math.min(Math.max(1, limit || 20), 100); 
   
   return { page: validatedPage, limit: validatedLimit };
 };

@@ -9,13 +9,10 @@ const validateProduction = () => {
   console.log('🔍 Validating production configuration...');
   
   try {
-    // Set production environment for validation
     process.env.NODE_ENV = 'production';
     
-    // Validate configuration
     validateConfig();
     
-    // Security checks
     const securityIssues: string[] = [];
     
     if (config.jwtSecret.includes('development') || config.jwtSecret.length < 32) {

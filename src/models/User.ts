@@ -36,14 +36,14 @@ const userPreferencesSchema = new Schema<UserPreferences>({
 const userSchema = new Schema<IUser>({
   username: {
     type: String,
-    required: false, // Username is now optional
+    required: false, 
     unique: true,
-    sparse: true, // Allows multiple null/undefined values without unique constraint issues
+    sparse: true, 
     trim: true,
     minlength: [3, 'Username must be at least 3 characters long'],
     maxlength: [30, 'Username cannot exceed 30 characters'],
     match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'],
-    default: undefined, // Explicitly set to undefined when not provided
+    default: undefined, 
   },
   email: {
     type: String,
@@ -57,7 +57,7 @@ const userSchema = new Schema<IUser>({
     type: String,
     required: [true, 'Password is required'],
     minlength: [8, 'Password must be at least 8 characters long'],
-    select: false, // Don't include password in queries by default
+    select: false, 
   },
   firstName: {
     type: String,
@@ -152,13 +152,12 @@ userSchema.methods.comparePassword = async function(candidatePassword: string): 
  */
 userSchema.methods.generateUsername = async function(): Promise<string> {
   const baseUsername = `${this.firstName}${this.lastName}`.toLowerCase()
-    .replace(/[^a-z0-9]/g, '') // Remove special characters
-    .substring(0, 20); // Limit length
+    .replace(/[^a-z0-9]/g, '') 
+    .substring(0, 20); 
   
   let username = baseUsername;
   let counter = 1;
   
-  // Check if username exists and increment until unique
   while (await User.findOne({ username, _id: { $ne: this._id } })) {
     username = `${baseUsername}${counter}`;
     counter++;

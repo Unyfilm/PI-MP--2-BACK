@@ -6,7 +6,6 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { config } from '../config/environment';
 
-// Configure Cloudinary
 cloudinary.config({
   cloud_name: config.cloudinary.cloudName,
   api_key: config.cloudinary.apiKey,
@@ -26,7 +25,7 @@ export interface CloudinaryService {
  * Video options for URL generation
  */
 export interface VideoOptions {
-  duration?: number; // URL expiration in seconds (default: 1 hour)
+  duration?: number; 
   transformation?: {
     width?: number;
     height?: number;
@@ -75,12 +74,11 @@ class CloudinaryServiceImpl implements CloudinaryService {
    */
   generateSignedVideoUrl(videoId: string, options: VideoOptions = {}): string {
     const {
-      duration = 3600, // 1 hour default
+      duration = 3600, 
       transformation = {}
     } = options;
 
     try {
-      // Generate signed URL with expiration
       const signedUrl = cloudinary.url(videoId, {
         resource_type: 'video',
         expires_at: Math.floor(Date.now() / 1000) + duration,
@@ -182,5 +180,4 @@ class CloudinaryServiceImpl implements CloudinaryService {
   }
 }
 
-// Export singleton instance
 export const cloudinaryService = new CloudinaryServiceImpl();

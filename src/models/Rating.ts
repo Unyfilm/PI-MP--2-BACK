@@ -17,13 +17,12 @@ export interface IRating extends mongoose.Document {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
   movieId: Types.ObjectId;
-  rating: number; // 1-5 estrellas
-  review: string; // Reseña opcional
+  rating: number; 
+  review: string; 
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
   
-  // Instance methods
   validateRating(): boolean;
 }
 
@@ -125,12 +124,10 @@ ratingSchema.statics.calculateMovieStats = async function(movieId: string) {
 
   const results = await this.aggregate(pipeline);
   
-  // Initialize distribution
   const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   let totalRatings = 0;
   let totalScore = 0;
 
-  // Fill distribution and calculate totals
   results.forEach((result: any) => {
     const rating = result._id;
     const count = result.count;
@@ -160,7 +157,6 @@ ratingSchema.methods.validateRating = function(): boolean {
  * Pre-save middleware to validate rating
  */
 ratingSchema.pre('save', function(next) {
-  // Usar this directamente ya que es un documento de Mongoose
   if (this.rating < 1 || this.rating > 5 || !Number.isInteger(this.rating)) {
     return next(new Error('Valor de calificación inválido. Debe ser un entero entre 1 y 5.'));
   }

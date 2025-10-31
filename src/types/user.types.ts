@@ -9,7 +9,7 @@ import { Document } from 'mongoose';
  */
 export interface IUser extends Document {
   _id: string;
-  username?: string;  // Made optional
+  username?: string;  
   email: string;
   password: string;
   firstName: string;
@@ -74,7 +74,7 @@ export enum VideoQuality {
  * User registration request interface
  */
 export interface RegisterUserRequest {
-  username?: string; // Now optional
+  username?: string; 
   email: string;
   password: string;
   firstName: string;

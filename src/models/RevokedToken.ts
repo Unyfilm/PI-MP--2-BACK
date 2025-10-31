@@ -30,7 +30,7 @@ const revokedTokenSchema = new Schema<IRevokedToken>({
   expiresAt: {
     type: Date,
     required: true,
-    index: { expires: 0 }, // TTL index - MongoDB will auto-delete expired documents
+    index: { expires: 0 }, 
   },
 }, {
   timestamps: true,

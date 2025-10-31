@@ -39,7 +39,6 @@ export const addFavorite = async (req: AuthenticatedRequest, res: Response): Pro
       return;
     }
 
-    // Check if the authenticated user matches the requested userId or is admin
     if (authenticatedUserId.toString() !== userId && req.user?.role !== 'admin') {
       res.status(HttpStatusCode.FORBIDDEN).json({
         success: false,
@@ -49,7 +48,6 @@ export const addFavorite = async (req: AuthenticatedRequest, res: Response): Pro
       return;
     }
 
-    // Validate required fields
     if (!userId || !movieId) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -59,7 +57,6 @@ export const addFavorite = async (req: AuthenticatedRequest, res: Response): Pro
       return;
     }
 
-    // Validate MongoDB ObjectIds
     if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(movieId)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -69,7 +66,6 @@ export const addFavorite = async (req: AuthenticatedRequest, res: Response): Pro
       return;
     }
 
-    // Check if user exists and is active
     const user = await User.findOne({ _id: userId, isActive: true });
     if (!user) {
       res.status(HttpStatusCode.NOT_FOUND).json({
@@ -80,7 +76,6 @@ export const addFavorite = async (req: AuthenticatedRequest, res: Response): Pro
       return;
     }
 
-    // Check if movie exists and is active
     const movie = await Movie.findOne({ _id: movieId, isActive: true });
     if (!movie) {
       res.status(HttpStatusCode.NOT_FOUND).json({
@@ -91,16 +86,13 @@ export const addFavorite = async (req: AuthenticatedRequest, res: Response): Pro
       return;
     }
 
-    // Check if favorite already exists (active or inactive)
     const existingFavorite = await Favorite.findOne({ 
       userId, 
       movieId
-      // Remove isActive: true to find both active and inactive favorites
     });
 
     if (existingFavorite) {
       if (existingFavorite.isActive) {
-        // Already active, return 409
         res.status(HttpStatusCode.CONFLICT).json({
           success: false,
           message: 'Ya en favoritos',
@@ -108,10 +100,8 @@ export const addFavorite = async (req: AuthenticatedRequest, res: Response): Pro
         } as ApiResponse);
         return;
       } else {
-        // Inactive favorite found, delete it and create a new one
         await Favorite.findByIdAndDelete(existingFavorite._id);
 
-        // Create new favorite
         const newFavorite = new Favorite({
           userId,
           movieId,
@@ -121,7 +111,6 @@ export const addFavorite = async (req: AuthenticatedRequest, res: Response): Pro
 
         await newFavorite.save();
 
-        // Populate movie details for response
         await newFavorite.populate('movieId', 'title poster genre director duration releaseDate');
 
         res.status(HttpStatusCode.CREATED).json({
@@ -134,7 +123,6 @@ export const addFavorite = async (req: AuthenticatedRequest, res: Response): Pro
       }
     }
 
-    // Create new favorite
     const newFavorite = new Favorite({
       userId,
       movieId,
@@ -144,7 +132,6 @@ export const addFavorite = async (req: AuthenticatedRequest, res: Response): Pro
 
     await newFavorite.save();
 
-    // Populate movie details for response
     await newFavorite.populate('movieId', 'title poster genre director duration releaseDate');
 
     res.status(HttpStatusCode.CREATED).json({
@@ -157,7 +144,6 @@ export const addFavorite = async (req: AuthenticatedRequest, res: Response): Pro
   } catch (error: any) {
     console.error('Add favorite error:', error);
 
-    // If Mongo duplicate key error occurred (race condition), return 409 Conflict
     if (error && (error.code === 11000 || error.name === 'MongoServerError')) {
       res.status(HttpStatusCode.CONFLICT).json({
         success: false,
@@ -210,7 +196,6 @@ export const getFavoritesByUser = async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
-    // Check if the authenticated user matches the requested userId or is admin
     if (authenticatedUserId !== userId && req.user?.role !== 'admin') {
       res.status(HttpStatusCode.FORBIDDEN).json({
         success: false,
@@ -220,7 +205,6 @@ export const getFavoritesByUser = async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
-    // Validate userId format
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -230,29 +214,24 @@ export const getFavoritesByUser = async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
-    // Build query
     const query: any = { 
       userId,
       isActive: true 
     };
 
-    // Add date filters
     if (fromDate || toDate) {
       query.createdAt = {};
       if (fromDate) query.createdAt.$gte = new Date(fromDate);
       if (toDate) query.createdAt.$lte = new Date(toDate);
     }
 
-    // Calculate pagination
     const pageNum = Math.max(1, Number(page));
     const limitNum = Math.max(1, Math.min(50, Number(limit))); // Max 50 items per page
     const skip = (pageNum - 1) * limitNum;
 
-    // Define sort order
     const sortOrder = order === 'asc' ? 1 : -1;
     const sortObj: any = { [sort]: sortOrder };
 
-    // Create aggregation pipeline for complex filtering
     const pipeline: any[] = [
       { $match: query },
       {
@@ -306,7 +285,6 @@ export const getFavoritesByUser = async (req: AuthenticatedRequest, res: Respons
     const favorites = result.data;
     const totalCount = result.totalCount[0]?.count || 0;
 
-    // Calculate pagination info
     const totalPages = Math.ceil(totalCount / limitNum);
     const hasNextPage = pageNum < totalPages;
     const hasPrevPage = pageNum > 1;
@@ -362,7 +340,6 @@ export const updateFavorite = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // Validate favorite ID format
     if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -372,7 +349,6 @@ export const updateFavorite = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // Find the favorite
     const favorite = await Favorite.findOne({ 
       _id: id, 
       isActive: true 
@@ -387,7 +363,6 @@ export const updateFavorite = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // Check if the authenticated user owns this favorite or is admin
     if (favorite.userId.toString() !== authenticatedUserId && req.user?.role !== 'admin') {
       res.status(HttpStatusCode.FORBIDDEN).json({
         success: false,
@@ -397,13 +372,11 @@ export const updateFavorite = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // Update fields
     if (notes !== undefined) favorite.notes = notes;
     if (rating !== undefined) favorite.rating = rating;
 
     await favorite.save();
 
-    // Populate movie details for response
     await favorite.populate('movieId', 'title poster genre director duration releaseDate');
 
     res.status(HttpStatusCode.OK).json({
@@ -448,7 +421,6 @@ export const deleteFavorite = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // Validate favorite ID format
     if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -458,7 +430,6 @@ export const deleteFavorite = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // Find the favorite
     const favorite = await Favorite.findOne({ 
       _id: id, 
       isActive: true 
@@ -473,7 +444,6 @@ export const deleteFavorite = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // Check if the authenticated user owns this favorite or is admin
     if (favorite.userId.toString() !== authenticatedUserId.toString() && req.user?.role !== 'admin') {
       res.status(HttpStatusCode.FORBIDDEN).json({
         success: false,
@@ -483,7 +453,6 @@ export const deleteFavorite = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // Hard delete: remove from database completely
     const movieTitle = (favorite.movieId as any)?.title || 'Unknown Movie';
     await Favorite.findByIdAndDelete(id);
 
@@ -540,7 +509,6 @@ export const getAllFavorites = async (req: AuthenticatedRequest, res: Response):
       return;
     }
 
-    // Only admins can access all favorites
     if (req.user?.role !== 'admin') {
       res.status(HttpStatusCode.FORBIDDEN).json({
         success: false,
@@ -550,28 +518,23 @@ export const getAllFavorites = async (req: AuthenticatedRequest, res: Response):
       return;
     }
 
-    // Build query for all active favorites
     const query: any = { 
       isActive: true 
     };
 
-    // Add date filters
     if (fromDate || toDate) {
       query.createdAt = {};
       if (fromDate) query.createdAt.$gte = new Date(fromDate);
       if (toDate) query.createdAt.$lte = new Date(toDate);
     }
 
-    // Calculate pagination
     const pageNum = Math.max(1, Number(page));
-    const limitNum = Math.max(1, Math.min(50, Number(limit))); // Max 50 items per page
+    const limitNum = Math.max(1, Math.min(50, Number(limit))); 
     const skip = (pageNum - 1) * limitNum;
 
-    // Define sort order
     const sortOrder = order === 'asc' ? 1 : -1;
     const sortObj: any = { [sort]: sortOrder };
 
-    // Create aggregation pipeline for complex filtering
     const pipeline: any[] = [
       { $match: query },
       {
@@ -640,7 +603,6 @@ export const getAllFavorites = async (req: AuthenticatedRequest, res: Response):
     const favorites = result.data;
     const totalCount = result.totalCount[0]?.count || 0;
 
-    // Calculate pagination info
     const totalPages = Math.ceil(totalCount / limitNum);
     const hasNextPage = pageNum < totalPages;
     const hasPrevPage = pageNum > 1;
@@ -703,29 +665,24 @@ export const getMyFavorites = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // Build query for the authenticated user's favorites
     const query: any = { 
       userId: authenticatedUserId,
       isActive: true 
     };
 
-    // Add date filters
     if (fromDate || toDate) {
       query.createdAt = {};
       if (fromDate) query.createdAt.$gte = new Date(fromDate);
       if (toDate) query.createdAt.$lte = new Date(toDate);
     }
 
-    // Calculate pagination
     const pageNum = Math.max(1, Number(page));
-    const limitNum = Math.max(1, Math.min(50, Number(limit))); // Max 50 items per page
+    const limitNum = Math.max(1, Math.min(50, Number(limit)));
     const skip = (pageNum - 1) * limitNum;
 
-    // Define sort order
     const sortOrder = order === 'asc' ? 1 : -1;
     const sortObj: any = { [sort]: sortOrder };
 
-    // Create aggregation pipeline for complex filtering
     const pipeline: any[] = [
       { $match: query },
       {
@@ -779,7 +736,6 @@ export const getMyFavorites = async (req: AuthenticatedRequest, res: Response): 
     const favorites = result.data;
     const totalCount = result.totalCount[0]?.count || 0;
 
-    // Calculate pagination info
     const totalPages = Math.ceil(totalCount / limitNum);
     const hasNextPage = pageNum < totalPages;
     const hasPrevPage = pageNum > 1;
@@ -834,7 +790,6 @@ export const getMyFavoriteById = async (req: AuthenticatedRequest, res: Response
       return;
     }
 
-    // Validate favorite ID format
     if (!mongoose.Types.ObjectId.isValid(favoriteId)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -844,7 +799,6 @@ export const getMyFavoriteById = async (req: AuthenticatedRequest, res: Response
       return;
     }
 
-    // Find the favorite belonging to the authenticated user
     const favorite = await Favorite.findOne({ 
       _id: favoriteId,
       userId: authenticatedUserId,

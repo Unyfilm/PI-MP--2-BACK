@@ -17,7 +17,6 @@ export interface IComment extends mongoose.Document {
   createdAt: Date;
   updatedAt: Date;
   
-  // Instance methods
   validateContent(): boolean;
 }
 
@@ -185,7 +184,6 @@ commentSchema.methods.validateContent = function(): boolean {
  * Pre-save middleware to validate content
  */
 commentSchema.pre('save', function(next) {
-  // Trim content and validate
   this.content = this.content.trim();
   
   if (!this.validateContent()) {
