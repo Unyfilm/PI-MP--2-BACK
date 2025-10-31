@@ -7,7 +7,7 @@ import { config, validateConfig, isDevelopment } from './config/environment';
 import { connectDB } from './config/database';
 import userRoutes from './routes/userRoutes';
 import movieRoutes from './routes/movieRoutes';
-import favoriteRoutes from './routes/favoriteRoutes';///En prueba, julian
+import favoriteRoutes from './routes/favoriteRoutes';
 import ratingRoutes from './routes/ratingRoutes';
 import commentRoutes from './routes/commentRoutes';
 import { ApiResponse, HttpStatusCode } from './types/api.types';
