@@ -60,11 +60,9 @@ export const getMovies = async (req: Request, res: Response): Promise<void> => {
       filter.director = new RegExp(director, 'i');
     }
 
-    // Calculate pagination
     const skip = (Number(page) - 1) * Number(limit);
     const sortOrder = order === 'asc' ? 1 : -1;
 
-    // Execute query
     const [movies, totalItems] = await Promise.all([
       Movie.find(filter)
         .sort({ [sort]: sortOrder })
@@ -122,7 +120,6 @@ export const getMovieById = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Increment view count
     await Movie.findByIdAndUpdate(id, { $inc: { views: 1 } });
 
     res.status(HttpStatusCode.OK).json({
@@ -287,7 +284,6 @@ export const deleteMovie = async (req: AuthenticatedRequest, res: Response): Pro
   try {
     const { id } = req.params;
 
-    // Soft delete by setting isActive to false
     const movie = await Movie.findByIdAndUpdate(
       id,
       { isActive: false },
@@ -349,7 +345,6 @@ export const getMovieVideo = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Generate signed URL with transformations
     const signedUrl = cloudinaryService.generateSignedVideoUrl(movie.cloudinaryVideoId, {
       duration: Number(duration),
       transformation: {
@@ -412,7 +407,6 @@ export const getMovieVideoInfo = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    // Get video info from Cloudinary
     const videoInfo = await cloudinaryService.getVideoInfo(movie.cloudinaryVideoId);
 
     res.status(HttpStatusCode.OK).json({

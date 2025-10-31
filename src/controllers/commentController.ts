@@ -59,7 +59,6 @@ export const createComment = async (req: AuthenticatedRequest, res: Response): P
       return;
     }
 
-    // Validate movieId format
     if (!mongoose.Types.ObjectId.isValid(movieId)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -69,7 +68,6 @@ export const createComment = async (req: AuthenticatedRequest, res: Response): P
       return;
     }
 
-    // Check if movie exists
     const movie = await Movie.findById(movieId);
     if (!movie) {
       res.status(HttpStatusCode.NOT_FOUND).json({
@@ -80,7 +78,6 @@ export const createComment = async (req: AuthenticatedRequest, res: Response): P
       return;
     }
 
-    // Create the comment
     const comment = new Comment({
       userId: authenticatedUserId,
       movieId,
@@ -89,7 +86,6 @@ export const createComment = async (req: AuthenticatedRequest, res: Response): P
 
     const savedComment = await comment.save();
     
-    // Populate user and movie data for response
     const populatedComment = await Comment.findById(savedComment._id)
       .populate('userId', 'firstName lastName email')
       .populate('movieId', 'title');
@@ -146,7 +142,6 @@ export const getAllComments = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // Check if user is admin
     if (req.user?.role !== 'admin') {
       res.status(HttpStatusCode.FORBIDDEN).json({
         success: false,
@@ -160,7 +155,6 @@ export const getAllComments = async (req: AuthenticatedRequest, res: Response): 
     const pageNum = Math.max(1, parseInt(page));
     const limitNum = Math.min(50, Math.max(1, parseInt(limit)));
 
-    // Build filter
     const filter: any = { isActive: true };
     
     if (movieId && mongoose.Types.ObjectId.isValid(movieId)) {
@@ -226,7 +220,6 @@ export const getMovieComments = async (req: Request, res: Response): Promise<voi
     const { movieId } = req.params;
     const { page = '1', limit = '10' }: CommentQueryParams = req.query;
 
-    // Validate movieId format
     if (!mongoose.Types.ObjectId.isValid(movieId)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -236,7 +229,6 @@ export const getMovieComments = async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    // Check if movie exists
     const movie = await Movie.findById(movieId);
     if (!movie) {
       res.status(HttpStatusCode.NOT_FOUND).json({
@@ -355,7 +347,6 @@ export const getCommentById = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // Validate commentId format
     if (!mongoose.Types.ObjectId.isValid(commentId)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -381,7 +372,6 @@ export const getCommentById = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // Check if user owns the comment or is admin
     if (comment.userId._id.toString() !== authenticatedUserId.toString() && req.user?.role !== 'admin') {
       res.status(HttpStatusCode.FORBIDDEN).json({
         success: false,
@@ -433,7 +423,6 @@ export const updateComment = async (req: AuthenticatedRequest, res: Response): P
       return;
     }
 
-    // Validate commentId format
     if (!mongoose.Types.ObjectId.isValid(commentId)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -457,7 +446,6 @@ export const updateComment = async (req: AuthenticatedRequest, res: Response): P
       return;
     }
 
-    // Check if user owns the comment
     if (comment.userId.toString() !== authenticatedUserId.toString()) {
       res.status(HttpStatusCode.FORBIDDEN).json({
         success: false,
@@ -467,11 +455,9 @@ export const updateComment = async (req: AuthenticatedRequest, res: Response): P
       return;
     }
 
-    // Update the comment
     comment.content = content.trim();
     const updatedComment = await comment.save();
 
-    // Populate user and movie data for response
     const populatedComment = await Comment.findById(updatedComment._id)
       .populate('userId', 'firstName lastName email')
       .populate('movieId', 'title');
@@ -529,7 +515,6 @@ export const deleteComment = async (req: AuthenticatedRequest, res: Response): P
       return;
     }
 
-    // Validate commentId format
     if (!mongoose.Types.ObjectId.isValid(commentId)) {
       res.status(HttpStatusCode.BAD_REQUEST).json({
         success: false,
@@ -553,7 +538,6 @@ export const deleteComment = async (req: AuthenticatedRequest, res: Response): P
       return;
     }
 
-    // Check if user owns the comment or is admin
     if (comment.userId.toString() !== authenticatedUserId.toString() && req.user?.role !== 'admin') {
       res.status(HttpStatusCode.FORBIDDEN).json({
         success: false,
@@ -563,7 +547,6 @@ export const deleteComment = async (req: AuthenticatedRequest, res: Response): P
       return;
     }
 
-    // Soft delete the comment
     comment.isActive = false;
     await comment.save();
 

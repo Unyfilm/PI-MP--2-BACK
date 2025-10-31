@@ -36,7 +36,6 @@ export const authenticateToken = async (
       return;
     }
 
-    // Check if token is blacklisted
     const revokedToken = await RevokedToken.findOne({ token });
     if (revokedToken) {
       res.status(HttpStatusCode.UNAUTHORIZED).json({
@@ -47,10 +46,8 @@ export const authenticateToken = async (
       return;
     }
 
-    // Verify token
     const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
 
-    // Check if user still exists and is active
     const user = await User.findById(decoded.userId);
     
     if (!user || !user.isActive) {
@@ -62,10 +59,9 @@ export const authenticateToken = async (
       return;
     }
 
-    // Attach user information to request
     req.user = user;
     req.userId = user._id;
-    req.token = token; // Add token to request for logout functionality
+    req.token = token; 
 
     next();
   } catch (error) {
@@ -167,10 +163,8 @@ export const optionalAuth = async (
       return;
     }
 
-    // Verify token
     const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
 
-    // Check if user still exists and is active
     const user = await User.findById(decoded.userId);
     
     if (user && user.isActive) {
@@ -180,7 +174,6 @@ export const optionalAuth = async (
 
     next();
   } catch (error) {
-    // Silently fail for optional auth
     next();
   }
 };

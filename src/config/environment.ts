@@ -5,7 +5,6 @@
 
 import dotenv from 'dotenv';
 
-// Load environment variables based on NODE_ENV
 const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
 dotenv.config({ path: envFile });
 
@@ -35,7 +34,6 @@ export interface AppConfig {
     user: string;
     pass: string;
   };
-  // Production-specific configurations
   trustProxy: boolean;
   rateLimitWindow: number;
   rateLimitMax: number;
@@ -64,7 +62,6 @@ export const isStaging = (): boolean => currentEnv === 'staging';
  */
 export const getDatabaseConfig = () => {
   if (isTest()) {
-    // Tests use MongoDB Memory Server - no real connection needed
     return null;
   }
   
@@ -99,7 +96,6 @@ export const config: AppConfig = {
     user: process.env.EMAIL_USER || '',
     pass: process.env.EMAIL_PASS || '',
   },
-  // Production optimizations
   trustProxy: isProduction(),
   rateLimitWindow: parseInt(process.env.RATE_LIMIT_WINDOW || '900000', 10), // 15 minutes
   rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '100', 10),
@@ -115,7 +111,7 @@ const getRequiredVars = (env: Environment): string[] => {
     case 'production':
       return [...base, 'CLIENT_URL'];
     case 'test':
-      return ['JWT_SECRET']; // Tests use MongoDB Memory Server
+      return ['JWT_SECRET']; 
     default:
       return base;
   }
@@ -141,7 +137,6 @@ export const validateConfig = (): void => {
     );
   }
   
-  // Production-specific validations
   if (isProduction()) {
     if (config.jwtSecret.length < 32) {
       throw new Error('JWT_SECRET must be at least 32 characters in production');

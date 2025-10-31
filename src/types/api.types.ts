@@ -107,35 +107,29 @@ export enum HttpStatusCode {
  * API endpoint paths
  */
 export enum ApiEndpoints {
-  // Auth routes
   AUTH_REGISTER = '/api/auth/register',
   AUTH_LOGIN = '/api/auth/login',
   AUTH_LOGOUT = '/api/auth/logout',
   AUTH_REFRESH = '/api/auth/refresh',
   AUTH_RESET_PASSWORD = '/api/auth/reset-password',
   
-  // User routes
   USER_PROFILE = '/api/users/profile',
   USER_UPDATE = '/api/users/update',
   USER_DELETE = '/api/users/delete',
   
-  // Movie routes
   MOVIES_LIST = '/api/movies',
   MOVIES_DETAIL = '/api/movies/:id',
   MOVIES_SEARCH = '/api/movies/search',
   MOVIES_TRENDING = '/api/movies/trending',
   
-  // Favorites routes
   FAVORITES_LIST = '/api/favorites',
   FAVORITES_ADD = '/api/favorites/:movieId',
   FAVORITES_REMOVE = '/api/favorites/:movieId',
   
-  // Ratings routes
   RATINGS_ADD = '/api/ratings',
   RATINGS_UPDATE = '/api/ratings/:movieId',
   RATINGS_GET = '/api/ratings/:movieId',
   
-  // Comments routes
   COMMENTS_LIST = '/api/comments/:movieId',
   COMMENTS_CREATE = '/api/comments',
   COMMENTS_UPDATE = '/api/comments/:id',

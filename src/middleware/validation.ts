@@ -35,7 +35,7 @@ export const handleValidationErrors = (
  */
 export const validateUserRegistration = [
   body('username')
-    .optional() // Username is now optional
+    .optional() 
     .isLength({ min: 3, max: 30 })
     .withMessage('Username must be between 3 and 30 characters')
     .matches(/^[a-zA-Z0-9_]+$/)
@@ -249,7 +249,6 @@ export const validateRatingCreation = [
     .isFloat({ min: 1, max: 5 })
     .withMessage('Rating must be a number between 1 and 5')
     .custom((value) => {
-      // Ensure rating is exactly 1, 2, 3, 4, or 5 (no decimals for star ratings)
       if (![1, 2, 3, 4, 5].includes(value)) {
         throw new Error('Rating must be exactly 1, 2, 3, 4, or 5 stars');
       }
@@ -269,7 +268,6 @@ export const validateRatingCreation = [
  * Rating query parameters validation rules
  */
 export const validateRatingQuery = [
-  // For route parameters
   body('movieId')
     .optional()
     .isMongoId()

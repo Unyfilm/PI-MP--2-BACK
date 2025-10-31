@@ -21,12 +21,10 @@ interface EmailOptions {
  * Create email transporter with support for multiple services
  */
 const createTransporter = () => {
-  // Check for SendGrid configuration
   const sendgridApiKey = process.env.SENDGRID_API_KEY;
   const emailService = process.env.EMAIL_SERVICE || config.email.service;
   
   if (emailService === 'SendGrid' && sendgridApiKey) {
-    // SendGrid configuration
     return nodemailer.createTransport({
       service: 'SendGrid',
       auth: {
@@ -36,23 +34,21 @@ const createTransporter = () => {
     });
   }
 
-  // Gmail configuration (fallback)
   const transportConfig = {
     host: 'smtp.gmail.com',
     port: 587,
-    secure: false, // true for 465, false for other ports
+    secure: false, 
     auth: {
       user: config.email.user,
-      pass: config.email.pass, // App password, not regular password
+      pass: config.email.pass, 
     },
-    // Production-specific settings for Render
     tls: {
       rejectUnauthorized: false,
       ciphers: 'SSLv3'
     },
-    connectionTimeout: 60000, // 60s
-    greetingTimeout: 30000,    // 30s
-    socketTimeout: 60000,      // 60s
+    connectionTimeout: 60000, 
+    greetingTimeout: 30000,    
+    socketTimeout: 60000,      
   };
 
   return nodemailer.createTransport(transportConfig);
@@ -79,17 +75,14 @@ export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
       return true;
     }
 
-    // PRIORITY 1: Use Brevo API (HTTP - no blocked ports)
     if (hasBrevoConfig) {
       return await sendEmailWithBrevo(options, brevoApiKey!);
     }
 
-    // PRIORITY 2: Use SendGrid API (HTTP - no blocked ports)
     if (hasSendGridConfig) {
       return await sendEmailWithSendGrid(options, sendgridApiKey!);
     }
 
-    // PRIORITY 3: Fallback to Gmail SMTP
     if (hasGmailConfig) {
       return await sendEmailWithNodemailer(options);
     }
@@ -111,7 +104,6 @@ const sendEmailWithSendGrid = async (options: EmailOptions, apiKey: string): Pro
     
     const senderEmail = process.env.EMAIL_FROM || config.email.user;
     
-    // Use the simplest format that always works
     const msg = {
       to: options.to,
       from: senderEmail,
@@ -166,7 +158,7 @@ const sendEmailWithBrevo = async (options: EmailOptions, apiKey: string): Promis
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      timeout: 15000 // 15 seconds timeout
+      timeout: 15000 
     });
     
     console.log(`✅ Email sent successfully via Brevo to ${options.to}`);
@@ -195,7 +187,6 @@ const sendEmailWithNodemailer = async (options: EmailOptions): Promise<boolean> 
     console.log(`📤 Sending email via Gmail SMTP to: ${options.to}`);
     const transporter = createTransporter();
     
-    // Verify transporter configuration
     await transporter.verify();
     console.log('📡 Gmail SMTP transporter verified successfully');
     

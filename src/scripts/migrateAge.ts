@@ -9,12 +9,10 @@ import { config } from '../config/environment';
 
 async function migrateUsersAge() {
   try {
-    // Connect to MongoDB
     const mongoUri = config.mongodbUri;
     await mongoose.connect(mongoUri);
     console.log('✅ Connected to MongoDB for age migration');
 
-    // Find all users without age field
     const usersWithoutAge = await User.find({ age: { $exists: false } });
     
     console.log(`📊 Found ${usersWithoutAge.length} users without age field`);
@@ -24,15 +22,13 @@ async function migrateUsersAge() {
       return;
     }
 
-    // Update each user individually to avoid validation issues
     let updatedCount = 0;
     for (const user of usersWithoutAge) {
       try {
-        // Use updateOne to bypass validation middleware
         await User.updateOne(
           { _id: user._id },
-          { $set: { age: 18 } }, // Default age of 18
-          { runValidators: false } // Skip validation for migration
+          { $set: { age: 18 } }, 
+          { runValidators: false } 
         );
         updatedCount++;
       } catch (error) {
@@ -51,7 +47,6 @@ async function migrateUsersAge() {
   }
 }
 
-// Run if called directly
 if (require.main === module) {
   migrateUsersAge()
     .then(() => process.exit(0))
